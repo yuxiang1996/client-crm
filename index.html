@@ -291,12 +291,15 @@ var DEMO = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? !/[?&]live\b/.
 /* The access key: arrives once as #key=… (setup link), then lives in this
    browser only. It is sent in the POST body, never in a URL. */
 var KEY_STORE = 'clientcrm.key';
-(function takeKeyFromHash() {
+function takeKeyFromHash() {
   var m = location.hash.match(/key=([^&]+)/);
-  if (!m) return;
+  if (!m) return false;
   try { localStorage.setItem(KEY_STORE, decodeURIComponent(m[1])); } catch (e) {}
   history.replaceState(null, '', location.pathname + location.search);
-})();
+  return true;
+}
+takeKeyFromHash();
+window.addEventListener('hashchange', function () { if (takeKeyFromHash()) { $('gate').hidden = true; load(false); } });
 function getKey() { try { return localStorage.getItem(KEY_STORE) || ''; } catch (e) { return ''; } }
 
 function api(fn, arg) {
