@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#EDF6F0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Client CRM">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230E6B3D'/%3E%3Cpath d='M14 31 32 16l18 15M19 28v20h26V28' fill='none' stroke='white' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<title>Client CRM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#EDF6F0; --bg2:#F8FBF9; --card:#FFFFFF; --card-a:rgba(255,255,255,.78);
+    --ink:#0F2419; --ink2:#3C5246; --muted:#71857A; --line:#DCE9E0; --line2:#EAF2EC;
+    --green:#0E6B3D; --green-d:#0A4F2D; --green-b:#1FAF5A; --mint:#DDF3E4; --mint2:#C7EBD3;
+    --gold:#B8955A; --gold-bg:#F6EEDD;
+    --red:#C23B22; --red-bg:#FCE9E4; --amber:#A66300; --amber-bg:#FDF1DC;
+    --blue:#1F5F9E; --blue-bg:#E2EEFA;
+    --r:18px; --r-sm:12px;
+    --shadow:0 1px 2px rgba(15,36,25,.05), 0 8px 24px -12px rgba(15,36,25,.18);
+    --nav-h:64px;
+    --font:"Plus Jakarta Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%}
+  body{
+    font:15px/1.45 var(--font); color:var(--ink);
+    background:radial-gradient(120% 60% at 100% 0%, #D6F0DF 0%, transparent 60%), linear-gradient(180deg,var(--bg),var(--bg2) 55%);
+    background-attachment:fixed; -webkit-font-smoothing:antialiased;
+  }
+  button,input,select,textarea{font:inherit;color:inherit}
+  button{cursor:pointer}
+  a{color:inherit}
+  [hidden]{display:none!important}
+  .num{font-variant-numeric:tabular-nums}
+
+  /* ---------- layout ---------- */
+  .app{max-width:560px;margin:0 auto;min-height:100%;padding:calc(env(safe-area-inset-top,0px) + 14px) 16px calc(var(--nav-h) + env(safe-area-inset-bottom,0px) + 28px)}
+  .top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}
+  .brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;letter-spacing:-.01em}
+  .brand .dot{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,var(--green-b),var(--green));display:grid;place-items:center;color:#fff}
+  .iconbtn{width:40px;height:40px;border-radius:12px;border:1px solid var(--line);background:var(--card-a);display:grid;place-items:center;color:var(--ink2);backdrop-filter:blur(8px)}
+  .iconbtn:active{transform:scale(.96)}
+  .iconbtn.spin svg{animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .banner{margin:8px 0 4px;padding:8px 12px;border-radius:10px;background:var(--gold-bg);color:#6E5524;font-size:12.5px;font-weight:600}
+  .banner.err{background:var(--red-bg);color:var(--red)}
+
+  h1{font-size:28px;line-height:1.15;letter-spacing:-.025em;margin:14px 0 4px;font-weight:800}
+  h1 em{font-style:normal;color:var(--green)}
+  .lede{color:var(--ink2);margin:0 0 16px;font-size:14.5px}
+  .lede b{color:var(--ink)}
+  h2{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:22px 2px 10px;display:flex;align-items:center;justify-content:space-between}
+  h2 .count{background:var(--line2);color:var(--ink2);border-radius:99px;padding:1px 8px;font-size:12px;letter-spacing:0}
+  h2.red{color:var(--red)} h2.red .count{background:var(--red-bg);color:var(--red)}
+  h2.amber{color:var(--amber)} h2.amber .count{background:var(--amber-bg);color:var(--amber)}
+
+  /* ---------- stat tiles ---------- */
+  .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .tile{background:var(--card-a);border:1px solid var(--line);border-radius:14px;padding:10px 10px 9px;text-align:left;backdrop-filter:blur(8px)}
+  .tile .v{font-size:22px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+  .tile .k{font-size:11px;color:var(--muted);font-weight:600;margin-top:2px}
+  .tile.red .v{color:var(--red)} .tile.amber .v{color:var(--amber)} .tile.green .v{color:var(--green)}
+  .tile:active{transform:scale(.98)}
+
+  /* ---------- cards ---------- */
+  .list{display:flex;flex-direction:column;gap:10px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:14px 14px 12px}
+  .card.tap{cursor:pointer}
+  .card-h{display:flex;gap:12px;align-items:flex-start}
+  .av{flex:none;width:42px;height:42px;border-radius:13px;display:grid;place-items:center;font-weight:700;font-size:14px;background:var(--mint);color:var(--green-d)}
+  .av.ghost{background:#EEF0EE;color:#6A746E}
+  .who{flex:1;min-width:0}
+  .who .n{font-weight:700;font-size:16px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .who .s{color:var(--muted);font-size:12.5px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .due{flex:none;font-size:12px;font-weight:700;padding:4px 9px;border-radius:99px;background:var(--line2);color:var(--ink2);white-space:nowrap}
+  .due.over{background:var(--red-bg);color:var(--red)}
+  .due.today{background:var(--amber-bg);color:var(--amber)}
+  .due.soon{background:var(--mint);color:var(--green-d)}
+  .rem{margin:10px 0 0;color:var(--ink2);font-size:13.5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .chip{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:99px;background:var(--line2);color:var(--ink2);white-space:nowrap}
+  .chip.active{background:var(--blue-bg);color:var(--blue)}
+  .chip.ghost{background:#F1EDE3;color:#7A6A45}
+  .chip.topic{background:var(--gold-bg);color:#7A5C22}
+  .acts{display:flex;gap:8px;margin-top:12px}
+  .btn{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:7px;height:42px;border-radius:12px;border:1px solid var(--line);background:#fff;font-weight:700;font-size:14px;color:var(--ink);text-decoration:none;padding:0 12px}
+  .btn:active{transform:scale(.98)}
+  .btn.wa{color:#128C4A}
+  .btn.primary{background:var(--green);border-color:var(--green);color:#fff}
+  .btn.primary:disabled{opacity:.55}
+  .btn.ghostbtn{background:transparent}
+  .btn.sm{height:36px;font-size:13px;flex:none}
+  .btn[aria-disabled="true"]{opacity:.4;pointer-events:none}
+  .empty{text-align:center;color:var(--muted);padding:26px 16px;background:var(--card-a);border:1px dashed var(--line);border-radius:var(--r);font-size:14px}
+  .empty b{display:block;color:var(--ink);font-size:15px;margin-bottom:2px}
+  .more{display:block;width:100%;margin-top:10px;background:none;border:none;color:var(--green);font-weight:700;padding:10px}
+
+  /* ---------- clients view ---------- */
+  .search{position:relative;margin:12px 0 10px}
+  .search svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted)}
+  .search input{width:100%;height:48px;border-radius:14px;border:1px solid var(--line);background:#fff;padding:0 14px 0 42px;font-size:16px;outline:none;box-shadow:var(--shadow)}
+  .search input:focus{border-color:var(--green-b)}
+  .filters{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin:0 -16px;padding-left:16px;padding-right:16px;scrollbar-width:none}
+  .filters::-webkit-scrollbar{display:none}
+  .f{flex:none;height:34px;padding:0 13px;border-radius:99px;border:1px solid var(--line);background:var(--card-a);font-size:13px;font-weight:700;color:var(--ink2);white-space:nowrap}
+  .f.on{background:var(--ink);border-color:var(--ink);color:#fff}
+  .tools{display:flex;gap:8px;align-items:center;justify-content:space-between;margin:10px 2px 8px;color:var(--muted);font-size:13px}
+  .tools select{border:1px solid var(--line);background:#fff;border-radius:10px;height:34px;padding:0 8px;font-size:13px;font-weight:600;max-width:52%}
+  .row{display:flex;align-items:center;gap:12px;padding:11px 12px;background:var(--card);border:1px solid var(--line);border-radius:16px;cursor:pointer}
+  .row:active{background:#F6FAF7}
+  .list.tight{gap:7px}
+
+  /* ---------- activity ---------- */
+  .day{font-size:12.5px;font-weight:700;color:var(--muted);margin:18px 2px 8px}
+  .ev{display:flex;gap:10px;padding:10px 12px;background:var(--card);border:1px solid var(--line);border-radius:14px;cursor:pointer}
+  .ev .ic{flex:none;width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:var(--mint);color:var(--green-d)}
+  .ev .ic.muted{background:var(--line2);color:var(--muted)}
+  .ev .t{font-size:14px} .ev .t b{font-weight:700}
+  .ev .nt{color:var(--ink2);font-size:13px;margin-top:2px;white-space:pre-wrap}
+  .ev .tm{color:var(--muted);font-size:12px;margin-left:auto;flex:none}
+
+  /* ---------- nav ---------- */
+  nav.bar{position:fixed;left:0;right:0;bottom:0;z-index:20;padding:8px 14px calc(env(safe-area-inset-bottom,0px) + 10px);pointer-events:none}
+  nav.bar .in{pointer-events:auto;max-width:420px;margin:0 auto;height:var(--nav-h);border-radius:22px;background:rgba(255,255,255,.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--line);box-shadow:0 10px 30px -10px rgba(15,36,25,.3);display:grid;grid-template-columns:1fr 1fr 64px 1fr;align-items:center;padding:0 6px}
+  .nb{background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;font-weight:700;color:var(--muted);height:100%;justify-content:center;border-radius:16px}
+  .nb.on{color:var(--green)}
+  .nb .pill{width:44px;height:28px;border-radius:99px;display:grid;place-items:center}
+  .nb.on .pill{background:var(--mint)}
+  .fab{width:52px;height:52px;margin:0 auto;border-radius:18px;border:none;background:linear-gradient(135deg,var(--green-b),var(--green));color:#fff;display:grid;place-items:center;box-shadow:0 8px 18px -6px rgba(14,107,61,.6)}
+  .fab:active{transform:scale(.95)}
+
+  /* ---------- sheets ---------- */
+  .scrim{position:fixed;inset:0;background:rgba(10,25,17,.38);z-index:40;opacity:0;transition:opacity .2s}
+  .scrim.show{opacity:1}
+  .sheet{position:fixed;left:0;right:0;bottom:0;z-index:50;max-height:94vh;overflow:auto;background:var(--bg2);border-radius:24px 24px 0 0;box-shadow:0 -10px 40px -10px rgba(0,0,0,.25);transform:translateY(100%);transition:transform .26s cubic-bezier(.2,.8,.2,1);padding:10px 16px calc(env(safe-area-inset-bottom,0px) + 20px);overscroll-behavior:contain}
+  .sheet.show{transform:none}
+  .sheet .inner{max-width:560px;margin:0 auto}
+  .grab{width:40px;height:5px;border-radius:9px;background:#C9D6CD;margin:0 auto 10px}
+  .sh-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+  .sh-h h3{margin:0;font-size:19px;letter-spacing:-.015em}
+  .sheet.full{top:0;max-height:none;border-radius:0;padding-top:calc(env(safe-area-inset-top,0px) + 10px)}
+
+  /* detail */
+  .d-head{display:flex;gap:14px;align-items:center;margin:4px 0 12px}
+  .d-head .av{width:56px;height:56px;border-radius:17px;font-size:19px}
+  .d-head .n{font-size:22px;font-weight:800;letter-spacing:-.02em;line-height:1.2}
+  .d-head .s{color:var(--muted);font-size:13px}
+  .nextbox{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 14px;margin:12px 0}
+  .nextbox .k{font-size:12px;color:var(--muted);font-weight:600}
+  .nextbox .v{font-size:16px;font-weight:700}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:16px;overflow:hidden;margin:12px 0}
+  .grid > div{background:var(--card);padding:10px 12px;min-width:0}
+  .grid .k{font-size:11.5px;color:var(--muted);font-weight:600}
+  .grid .v{font-size:14px;font-weight:600;overflow-wrap:anywhere}
+  .grid .wide{grid-column:1/-1}
+  .remarks{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 14px;white-space:pre-wrap;font-size:14px;color:var(--ink2)}
+  .tl{position:relative;margin:6px 0 0 6px;padding-left:18px;border-left:2px solid var(--line)}
+  .tl .it{position:relative;padding:0 0 14px}
+  .tl .it::before{content:"";position:absolute;left:-24px;top:5px;width:10px;height:10px;border-radius:50%;background:var(--green-b);border:2px solid var(--bg2)}
+  .tl .it.muted::before{background:#B8C6BD}
+  .tl .w{font-size:12px;color:var(--muted);font-weight:600}
+  .tl .a{font-size:14px;font-weight:700}
+  .tl .x{font-size:13.5px;color:var(--ink2);white-space:pre-wrap}
+
+  /* forms */
+  label.fl{display:block;margin:0 0 12px}
+  label.fl > span{display:block;font-size:12.5px;font-weight:700;color:var(--ink2);margin:0 0 5px 2px}
+  .in,select.in,textarea.in{width:100%;height:46px;border-radius:12px;border:1px solid var(--line);background:#fff;padding:0 12px;font-size:16px;outline:none}
+  textarea.in{height:auto;min-height:92px;padding:11px 12px;resize:vertical;line-height:1.45}
+  .in:focus{border-color:var(--green-b);box-shadow:0 0 0 3px rgba(31,175,90,.15)}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .seg{display:flex;flex-wrap:wrap;gap:6px}
+  .seg button{height:36px;padding:0 12px;border-radius:99px;border:1px solid var(--line);background:#fff;font-size:13px;font-weight:700;color:var(--ink2)}
+  .seg button.on{background:var(--green);border-color:var(--green);color:#fff}
+  .check{display:flex;gap:10px;align-items:center;font-size:14px;color:var(--ink2);margin:4px 2px 16px}
+  .check input{width:20px;height:20px;accent-color:var(--green)}
+  .hint{font-size:12.5px;color:var(--muted);margin:-4px 2px 14px}
+  .hint b{color:var(--ink)}
+
+  /* toast */
+  .toast{position:fixed;left:50%;bottom:calc(var(--nav-h) + env(safe-area-inset-bottom,0px) + 26px);transform:translate(-50%,20px);opacity:0;z-index:60;background:var(--ink);color:#fff;border-radius:14px;padding:11px 12px 11px 16px;font-size:14px;font-weight:600;display:flex;gap:12px;align-items:center;transition:all .22s;width:max-content;max-width:calc(100% - 32px);box-shadow:0 10px 30px -8px rgba(0,0,0,.4)}
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+  .toast button{background:rgba(255,255,255,.14);border:none;color:#fff;font-weight:700;border-radius:9px;padding:6px 10px}
+  .toast.err{background:var(--red)}
+
+  .gate{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:24px 16px;background:linear-gradient(180deg,var(--bg),var(--bg2))}
+  .gate-card{width:100%;max-width:380px;background:var(--card);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);padding:24px 20px;text-align:center}
+  .gate-card h3{margin:0 0 6px;font-size:20px;letter-spacing:-.015em}
+  .gate-card p{margin:0 0 14px;color:var(--ink2);font-size:14px}
+  .gate-card .in{text-align:center;margin-bottom:6px}
+  .gate-msg{color:var(--red)!important;font-weight:600;min-height:1.2em;margin:4px 0 10px!important}
+  .skel{height:84px;border-radius:var(--r);background:linear-gradient(90deg,#E7F0EA,#F3F8F4,#E7F0EA);background-size:200% 100%;animation:sk 1.2s infinite}
+  @keyframes sk{to{background-position:-200% 0}}
+  @media (min-width:600px){ .tiles .tile .v{font-size:26px} }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="top">
+    <div class="brand"><span class="dot"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9.5h13V10"/></svg></span>Client CRM</div>
+    <button class="iconbtn" id="refreshBtn" aria-label="Refresh from sheet" onclick="load(true)">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 4v5h-5"/></svg>
+    </button>
+  </div>
+  <div id="banner" class="banner" hidden></div>
+
+  <!-- TODAY -->
+  <section id="v-today">
+    <h1 id="greet">Hello</h1>
+    <p class="lede" id="lede">Loading your clients…</p>
+    <div class="tiles" id="tiles"></div>
+    <div id="todayBody"><div class="list" style="margin-top:22px"><div class="skel"></div><div class="skel"></div><div class="skel"></div></div></div>
+  </section>
+
+  <!-- CLIENTS -->
+  <section id="v-clients" hidden>
+    <h1>Clients</h1>
+    <div class="search">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" type="search" placeholder="Name, phone, block, remarks…" autocomplete="off" oninput="renderClients()">
+    </div>
+    <div class="filters" id="filters"></div>
+    <div class="tools">
+      <span id="ccount"></span>
+      <select id="sort" onchange="renderClients()" aria-label="Sort">
+        <option value="next">Next follow up</option>
+        <option value="last">Longest since contact</option>
+        <option value="name">Name A–Z</option>
+        <option value="id">Client ID</option>
+      </select>
+    </div>
+    <div class="list tight" id="clientList"></div>
+    <button class="btn ghostbtn" style="width:100%;margin-top:16px" onclick="importPpc(this)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v3h16v-3"/></svg>Import PPC leads (Kwang / Seah)
+    </button>
+  </section>
+
+  <!-- ACTIVITY -->
+  <section id="v-activity" hidden>
+    <h1>Activity</h1>
+    <p class="lede" id="actLede"></p>
+    <div id="actBody"></div>
+    <button class="btn ghostbtn" style="width:100%;margin-top:22px;color:var(--muted)" onclick="lockApp()">Lock this device</button>
+  </section>
+</div>
+
+<nav class="bar"><div class="in">
+  <button class="nb on" data-v="today" onclick="go('today')"><span class="pill"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></span>Today</button>
+  <button class="nb" data-v="clients" onclick="go('clients')"><span class="pill"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><path d="M16 4.8a3.4 3.4 0 0 1 0 6.4M18.5 14.8c1.6.8 2.6 2.4 3 5.2"/></svg></span>Clients</button>
+  <button class="fab" aria-label="Add client" onclick="openEdit(null)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+  <button class="nb" data-v="activity" onclick="go('activity')"><span class="pill"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg></span>Activity</button>
+</div></nav>
+
+<div class="scrim" id="scrim" hidden onclick="closeTop()"></div>
+<div class="sheet full" id="detail" hidden><div class="inner" id="detailBody"></div></div>
+<div class="sheet" id="logSheet" hidden><div class="inner" id="logBody"></div></div>
+<div class="sheet" id="editSheet" hidden><div class="inner" id="editBody"></div></div>
+<div class="toast" id="toast" role="status"></div>
+
+<div class="gate" id="gate" hidden>
+  <form class="gate-card" onsubmit="submitGate(event)">
+    <div class="brand" style="justify-content:center;margin-bottom:14px"><span class="dot"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9.5h13V10"/></svg></span>Client CRM</div>
+    <h3>Enter your access key</h3>
+    <p>Open your setup link once on this device, or paste the key here. It stays on this device only.</p>
+    <input class="in" id="gateKey" type="password" autocomplete="current-password" placeholder="Access key" aria-label="Access key">
+    <p class="gate-msg" id="gateMsg"></p>
+    <button class="btn primary" style="width:100%;height:48px" type="submit">Unlock</button>
+  </form>
+</div>
+
+<script>
+/* ==========================================================================
+   State + backend bridge
+   ========================================================================== */
+var S = { clients: [], options: {}, log: [], today: '', owner: 'Kenn', view: 'today', filter: 'all', topic: '', loadedAt: 0, demo: false };
+
+/* The Apps Script web app that reads and writes the Master List. */
+var API_URL = 'https://script.google.com/macros/s/AKfycbzPhiiogQOzhHNi7mJ9yUanG7EZhyOt8-9_uElnjGUEMM9eVJw-OnsZnWvbi5F7SJOO/exec';
+
+/* Local preview runs on invented demo data unless ?live is in the address. */
+var DEMO = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? !/[?&]live\b/.test(location.search) : /[?&]demo\b/.test(location.search);
+
+/* The access key: arrives once as #key=… (setup link), then lives in this
+   browser only. It is sent in the POST body, never in a URL. */
+var KEY_STORE = 'clientcrm.key';
+(function takeKeyFromHash() {
+  var m = location.hash.match(/key=([^&]+)/);
+  if (!m) return;
+  try { localStorage.setItem(KEY_STORE, decodeURIComponent(m[1])); } catch (e) {}
+  history.replaceState(null, '', location.pathname + location.search);
+})();
+function getKey() { try { return localStorage.getItem(KEY_STORE) || ''; } catch (e) { return ''; } }
+
+function api(fn, arg) {
+  if (DEMO) return Demo.call(fn, arg);
+  var key = getKey();
+  if (!key) { showGate(); return Promise.reject(new Error('Locked')); }
+  return fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },   // simple request, no CORS preflight
+    body: JSON.stringify({ action: fn, key: key, arg: arg === undefined ? null : arg }),
+    redirect: 'follow'
+  }).then(function (r) {
+    if (!r.ok) throw new Error('Server replied ' + r.status);
+    return r.json();
+  }).then(function (j) {
+    if (j.ok) return j.data;
+    if (j.error === 'unauthorized') { try { localStorage.removeItem(KEY_STORE); } catch (e) {} showGate('That key did not work. Paste it again.'); throw new Error('Locked'); }
+    throw new Error(j.error || 'Unknown error');
+  }, function (e) {
+    if (e.message === 'Locked') throw e;
+    throw new Error(navigator.onLine ? (e.message || 'Network error') : 'You are offline');
+  });
+}
+
+/* ---------- lock screen ---------- */
+function showGate(msg) {
+  $('gate').hidden = false;
+  $('gateMsg').textContent = msg || '';
+  setTimeout(function () { $('gateKey').focus(); }, 50);
+}
+function submitGate(ev) {
+  if (ev) ev.preventDefault();
+  var k = $('gateKey').value.trim();
+  if (!k) return;
+  try { localStorage.setItem(KEY_STORE, k); } catch (e) {}
+  $('gate').hidden = true; $('gateKey').value = '';
+  load(false);
+}
+function lockApp() {
+  try { localStorage.removeItem(KEY_STORE); } catch (e) {}
+  S.clients = []; S.log = []; render(); closeTop(); showGate('Locked on this device.');
+}
+
+/* ==========================================================================
+   Dates — everything is 'yyyy-mm-dd' strings, compared as local days
+   ========================================================================== */
+var DAY = 86400000;
+function d0(s) { if (!s || !/^\d{4}-\d{2}-\d{2}/.test(s)) return null; var p = s.slice(0, 10).split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
+function ymd(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+function daysUntil(s) { var a = d0(s), t = d0(S.today); return a && t ? Math.round((a - t) / DAY) : null; }
+var MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+var WK = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+function fmt(s, withYear) { var d = d0(s); if (!d) return s || '—'; var t = d0(S.today); return d.getDate() + ' ' + MON[d.getMonth()] + ((withYear || (t && d.getFullYear() !== t.getFullYear())) ? ' ' + d.getFullYear() : ''); }
+function fmtDay(s) { var d = d0(s); return d ? WK[d.getDay()] + ', ' + d.getDate() + ' ' + MON[d.getMonth()] : s; }
+
+/* Mirrors the sheet's Next Follow Up formula, for instant feedback before the sheet replies. */
+function nextFrom(last, dur) {
+  var d = d0(last); if (!d) return '';
+  switch (String(dur || '').trim()) {
+    case 'Daily': d.setDate(d.getDate() + 1); break;
+    case '2 Days': d.setDate(d.getDate() + 2); break;
+    case 'Weekly': d.setDate(d.getDate() + 7); break;
+    case 'Bi-Weekly': d.setDate(d.getDate() + 14); break;
+    case 'Monthly': var day = d.getDate(); d.setDate(1); d.setMonth(d.getMonth() + 1); d.setDate(Math.min(day, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate())); break;
+    default: return '';
+  }
+  return ymd(d);
+}
+
+function dueInfo(c) {
+  var n = daysUntil(c.next);
+  if (n === null) return { cls: '', txt: c.duration ? 'No date' : 'No cadence', n: 9999 };
+  if (n < 0) return { cls: 'over', txt: (-n) + 'd overdue', n: n };
+  if (n === 0) return { cls: 'today', txt: 'Today', n: 0 };
+  if (n === 1) return { cls: 'soon', txt: 'Tomorrow', n: 1 };
+  if (n <= 7) return { cls: 'soon', txt: 'In ' + n + 'd', n: n };
+  return { cls: '', txt: fmt(c.next), n: n };
+}
+
+/* ==========================================================================
+   Helpers
+   ========================================================================== */
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function $(id) { return document.getElementById(id); }
+function initials(n) { var p = String(n).replace(/\(.*?\)/g, '').trim().split(/\s+/); return ((p[0] || '')[0] || '?').toUpperCase() + ((p.length > 1 ? p[p.length - 1][0] : (p[0] || '')[1]) || '').toUpperCase(); }
+function byId(id) { for (var i = 0; i < S.clients.length; i++) if (S.clients[i].id === id) return S.clients[i]; return null; }
+function phoneDigits(p) { var d = String(p || '').replace(/\D/g, ''); if (d.length === 8 && /^[3689]/.test(d)) d = '65' + d; return d; }
+function waLink(c) { var d = phoneDigits(c.phone); return d ? 'https://wa.me/' + d : ''; }
+function telLink(c) { var d = phoneDigits(c.phone); return d ? 'tel:+' + d : ''; }
+function sub(c) { return [c.id, [c.rooms, c.type].filter(Boolean).join(' '), c.address].filter(Boolean).join(' · '); }
+function isGhost(c) { return /ghost/i.test(c.status); }
+function greeting() { var h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'; }
+
+var IC = {
+  wa: '<svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2c-1.6 0-3.1-.4-4.4-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.4.1-.7.3-.2.3-.9.9-.9 2.2s.9 2.5 1 2.7c.1.2 1.8 2.8 4.4 3.9 1.6.7 2.3.8 3.1.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3Z"/></svg>',
+  call: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h3.5l1.8 4.6-2.3 1.4a11 11 0 0 0 5 5l1.4-2.3L19 13.5V17a2 2 0 0 1-2.2 2A16 16 0 0 1 3 5.2 2 2 0 0 1 5 3Z"/></svg>',
+  check: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>',
+  back: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
+  x: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+  edit: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/></svg>',
+  copy: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>',
+  note: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h14v16H5z"/><path d="M9 9h6M9 13h6M9 17h3"/></svg>',
+  plus: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>'
+};
+
+/* ==========================================================================
+   Load
+   ========================================================================== */
+function load(manual) {
+  var b = $('refreshBtn'); b.classList.add('spin');
+  return api('getData').then(function (d) {
+    S.clients = d.clients || []; S.options = d.options || {}; S.log = d.log || []; S.today = d.today; S.owner = d.owner || 'Kenn';
+    S.loadedAt = Date.now(); S.demo = !!d.demo;
+    var bn = $('banner');
+    if (S.demo) { bn.hidden = false; bn.className = 'banner'; bn.textContent = 'Demo data · not connected to your Master List yet'; } else bn.hidden = true;
+    render();
+    if (manual) toast('Up to date · ' + S.clients.length + ' clients');
+  }).catch(function (e) {
+    if (e.message === 'Locked') return;
+    var bn = $('banner'); bn.hidden = false; bn.className = 'banner err'; bn.textContent = 'Could not load the sheet: ' + (e.message || e);
+  }).finally(function () { b.classList.remove('spin'); });
+}
+
+/* Pulls Kwang / Seah PPC leads from Our Master List into this list. */
+function importPpc(btn) {
+  btn.disabled = true; var t = btn.innerHTML; btn.textContent = 'Importing…';
+  api('importPpcLeads').then(function (r) {
+    toast(r.added ? 'Added ' + r.added + ' PPC lead' + (r.added === 1 ? '' : 's') + (r.already ? ' · ' + r.already + ' already here' : '') : 'No new PPC leads' + (r.already ? ' · ' + r.already + ' already here' : ''));
+    if (r.added) return load(false);
+  }).catch(function (e) { if (e.message !== 'Locked') toast('Import failed: ' + (e.message || e), true); })
+    .finally(function () { btn.disabled = false; btn.innerHTML = t; });
+}
+
+document.addEventListener('visibilitychange', function () {
+  if (document.visibilityState === 'visible' && S.loadedAt && Date.now() - S.loadedAt > 5 * 60000 && !anySheetOpen()) load(false);
+});
+
+function render() { renderToday(); renderClients(); renderActivity(); if (S.openId) renderDetail(S.openId); }
+
+/* ==========================================================================
+   Navigation
+   ========================================================================== */
+function go(v) {
+  S.view = v;
+  ['today', 'clients', 'activity'].forEach(function (k) { $('v-' + k).hidden = k !== v; });
+  document.querySelectorAll('.nb').forEach(function (b) { b.classList.toggle('on', b.dataset.v === v); });
+  window.scrollTo(0, 0);
+}
+function goFilter(f) { S.filter = f; go('clients'); renderClients(); }
+
+/* ==========================================================================
+   Today
+   ========================================================================== */
+function renderToday() {
+  var cs = S.clients.filter(function (c) { return c.next; });
+  var over = [], today = [], week = [];
+  cs.forEach(function (c) { var n = daysUntil(c.next); if (n < 0) over.push(c); else if (n === 0) today.push(c); else if (n <= 7) week.push(c); });
+  var bySoon = function (a, b) { return a.next < b.next ? -1 : a.next > b.next ? 1 : a.name.localeCompare(b.name); };
+  over.sort(bySoon); today.sort(function (a, b) { return a.name.localeCompare(b.name); }); week.sort(bySoon);
+
+  var doneToday = S.log.filter(function (e) { return e.at && e.at.slice(0, 10) === S.today && /follow|messag|call|met|no reply/i.test(e.action); }).length;
+  var active = S.clients.filter(function (c) { return /active/i.test(c.status); }).length;
+
+  $('greet').innerHTML = esc(greeting()) + ', <em>' + esc(S.owner) + '</em>';
+  var due = over.length + today.length;
+  $('lede').innerHTML = S.clients.length
+    ? (due ? 'You have <b>' + due + ' follow-up' + (due === 1 ? '' : 's') + '</b> to do' + (over.length ? ', ' + over.length + ' overdue' : '') + '.' : 'Nothing due today. Nice.') + (doneToday ? ' ' + doneToday + ' done so far today.' : '') + '<br><span style="color:var(--muted);font-size:13px">' + esc(fmtDay(S.today)) + '</span>'
+    : 'No clients yet. Tap + to add one.';
+
+  $('tiles').innerHTML =
+    tile('red', over.length, 'Overdue', "goFilter('overdue')") +
+    tile('amber', today.length, 'Today', "goFilter('today')") +
+    tile('green', week.length, 'This week', "goFilter('week')") +
+    tile('', active, 'Active', "goFilter('active')");
+
+  var h = '';
+  h += section('Overdue', over, 'red', 6);
+  h += section('Due today', today, 'amber', 50);
+  if (!over.length && !today.length) h += '<h2>Due today</h2><div class="empty"><b>All caught up</b>Nothing is due today. The next few are below.</div>';
+  h += section('Coming up this week', week, '', 5, true);
+  $('todayBody').innerHTML = h;
+}
+function tile(cls, v, k, on) { return '<button class="tile ' + cls + '" onclick="' + on + '"><div class="v num">' + v + '</div><div class="k">' + k + '</div></button>'; }
+
+function section(title, arr, cls, cap, compact) {
+  if (!arr.length) return '';
+  var shown = arr.slice(0, cap);
+  var h = '<h2 class="' + cls + '">' + title + ' <span class="count">' + arr.length + '</span></h2><div class="list' + (compact ? ' tight' : '') + '">';
+  shown.forEach(function (c) { h += compact ? rowHtml(c) : cardHtml(c); });
+  h += '</div>';
+  if (arr.length > cap) {
+    var f = cls === 'red' ? 'overdue' : cls === 'amber' ? 'today' : 'week';
+    h += '<button class="more" onclick="goFilter(\'' + f + '\')">See all ' + arr.length + ' →</button>';
+  }
+  return h;
+}
+
+function cardHtml(c) {
+  var di = dueInfo(c), wa = waLink(c), tel = telLink(c);
+  return '<div class="card tap" onclick="openDetail(\'' + esc(c.id) + '\')">' +
+    '<div class="card-h"><div class="av' + (isGhost(c) ? ' ghost' : '') + '">' + esc(initials(c.name)) + '</div>' +
+    '<div class="who"><div class="n">' + esc(c.name) + '</div><div class="s">' + esc(sub(c)) + '</div></div>' +
+    '<span class="due ' + di.cls + '">' + di.txt + '</span></div>' +
+    chipsHtml(c) +
+    (c.remarks ? '<p class="rem">' + esc(lastRemark(c.remarks)) + '</p>' : '') +
+    '<div class="acts" onclick="event.stopPropagation()">' +
+      '<a class="btn wa" ' + (wa ? 'href="' + wa + '" target="_blank" rel="noopener"' : 'aria-disabled="true"') + '>' + IC.wa + 'WhatsApp</a>' +
+      '<a class="btn" ' + (tel ? 'href="' + tel + '" target="_blank"' : 'aria-disabled="true"') + '>' + IC.call + 'Call</a>' +
+      '<button class="btn primary" onclick="quickDone(\'' + esc(c.id) + '\', this)">' + IC.check + 'Done</button>' +
+    '</div></div>';
+}
+
+function rowHtml(c) {
+  var di = dueInfo(c);
+  return '<div class="row" onclick="openDetail(\'' + esc(c.id) + '\')">' +
+    '<div class="av' + (isGhost(c) ? ' ghost' : '') + '">' + esc(initials(c.name)) + '</div>' +
+    '<div class="who"><div class="n">' + esc(c.name) + '</div><div class="s">' + esc([c.topic, c.status, c.duration].filter(Boolean).join(' · ') || sub(c)) + '</div></div>' +
+    '<span class="due ' + di.cls + '">' + di.txt + '</span></div>';
+}
+
+function chipsHtml(c) {
+  var h = '';
+  if (c.status) h += '<span class="chip ' + (isGhost(c) ? 'ghost' : /active/i.test(c.status) ? 'active' : '') + '">' + esc(c.status) + '</span>';
+  if (c.topic) h += '<span class="chip topic">' + esc(c.topic) + '</span>';
+  if (c.stage) h += '<span class="chip">' + esc(c.stage) + '</span>';
+  if (c.duration) h += '<span class="chip">' + esc(c.duration) + '</span>';
+  return h ? '<div class="chips">' + h + '</div>' : '';
+}
+
+/* The newest line of the remarks is usually the most useful one on a card. */
+function lastRemark(r) { var lines = String(r).split(/\n/).filter(function (l) { return l.trim(); }); return lines.length > 1 && /^\d{1,2}\/\d{1,2}:/.test(lines[lines.length - 1]) ? lines[lines.length - 1] : r; }
+
+/* ==========================================================================
+   Clients
+   ========================================================================== */
+var FILTERS = [
+  ['all', 'All'], ['overdue', 'Overdue'], ['today', 'Due today'], ['week', 'Next 7 days'],
+  ['active', 'Active'], ['ghost', 'Ghost'], ['nodate', 'No follow-up date']
+];
+function renderClients() {
+  var topics = S.options.topic || [];
+  $('filters').innerHTML = FILTERS.map(function (f) { return '<button class="f' + (S.filter === f[0] ? ' on' : '') + '" onclick="S.filter=\'' + f[0] + '\';renderClients()">' + f[1] + '</button>'; }).join('') +
+    topics.map(function (t) { return '<button class="f' + (S.topic === t ? ' on' : '') + '" data-topic="' + esc(t) + '" onclick="S.topic=S.topic===this.dataset.topic?\'\':this.dataset.topic;renderClients()">' + esc(t) + '</button>'; }).join('');
+
+  var q = $('q').value.trim().toLowerCase();
+  var qd = q.replace(/\D/g, '');
+  var list = S.clients.filter(function (c) {
+    var n = daysUntil(c.next);
+    switch (S.filter) {
+      case 'overdue': if (!(n < 0)) return false; break;
+      case 'today': if (n !== 0) return false; break;
+      case 'week': if (n === null || n < 0 || n > 7) return false; break;
+      case 'active': if (!/active/i.test(c.status)) return false; break;
+      case 'ghost': if (!isGhost(c)) return false; break;
+      case 'nodate': if (c.next) return false; break;
+    }
+    if (S.topic && c.topic !== S.topic) return false;
+    if (!q) return true;
+    var hay = [c.name, c.id, c.address, c.remarks, c.topic, c.status, c.type, c.rooms].join(' ').toLowerCase();
+    return hay.indexOf(q) >= 0 || (qd.length >= 3 && String(c.phone).replace(/\D/g, '').indexOf(qd) >= 0);
+  });
+
+  var s = $('sort').value;
+  list.sort(function (a, b) {
+    if (s === 'name') return a.name.localeCompare(b.name);
+    if (s === 'id') return a.id.localeCompare(b.id, undefined, { numeric: true });
+    if (s === 'last') return (a.last || '0') < (b.last || '0') ? -1 : (a.last || '0') > (b.last || '0') ? 1 : 0;
+    var an = a.next || '9999', bn = b.next || '9999';
+    return an < bn ? -1 : an > bn ? 1 : a.name.localeCompare(b.name);
+  });
+
+  $('ccount').textContent = list.length + ' of ' + S.clients.length + ' clients';
+  $('clientList').innerHTML = list.length ? list.map(rowHtml).join('') : '<div class="empty"><b>No matches</b>Try another search or filter.</div>';
+}
+
+/* ==========================================================================
+   Activity
+   ========================================================================== */
+function renderActivity() {
+  var log = S.log.slice(0, 300);
+  var weekAgo = ymd(new Date(d0(S.today) - 6 * DAY));
+  var thisWeek = S.log.filter(function (e) { return e.at && e.at.slice(0, 10) >= weekAgo && !/added|edited/i.test(e.action); });
+  var people = {}; thisWeek.forEach(function (e) { people[e.id] = 1; });
+  $('actLede').textContent = S.log.length ? thisWeek.length + ' follow-ups logged in the last 7 days, ' + Object.keys(people).length + ' different clients.' : '';
+  if (!log.length) { $('actBody').innerHTML = '<div class="empty"><b>Nothing logged yet</b>Tap Done on a follow-up and it shows up here.</div>'; return; }
+  var h = '', cur = '';
+  log.forEach(function (e) {
+    var day = (e.at || '').slice(0, 10);
+    if (day !== cur) { cur = day; var n = daysUntil(day); h += '<div class="day">' + (n === 0 ? 'Today' : n === -1 ? 'Yesterday' : esc(fmtDay(day))) + '</div>'; }
+    var meta = /added|edited/i.test(e.action);
+    h += '<div class="ev" style="margin-bottom:7px" onclick="openDetail(\'' + esc(e.id) + '\')"><div class="ic' + (meta ? ' muted' : '') + '">' + (meta ? IC.edit : IC.check) + '</div>' +
+      '<div style="min-width:0"><div class="t"><b>' + esc(e.name || e.id) + '</b> · ' + esc(e.action) + '</div>' + (e.note ? '<div class="nt">' + esc(e.note) + '</div>' : '') + '</div>' +
+      '<div class="tm">' + esc((e.at || '').slice(11, 16)) + '</div></div>';
+  });
+  $('actBody').innerHTML = h;
+}
+
+/* ==========================================================================
+   Sheets (detail / log / edit)
+   ========================================================================== */
+var stack = [];
+function openSheet(id) {
+  var el = $(id), sc = $('scrim');
+  el.hidden = false; sc.hidden = false;
+  if (stack.indexOf(id) < 0) stack.push(id);
+  el.style.zIndex = 50 + stack.length * 2; sc.style.zIndex = 49 + stack.length * 2;
+  requestAnimationFrame(function () { el.classList.add('show'); sc.classList.add('show'); });
+  document.body.style.overflow = 'hidden';
+}
+function closeSheet(id) {
+  var el = $(id); el.classList.remove('show');
+  stack = stack.filter(function (x) { return x !== id; });
+  setTimeout(function () { el.hidden = true; }, 260);
+  if (id === 'detail') S.openId = null;
+  var sc = $('scrim');
+  if (!stack.length) { sc.classList.remove('show'); setTimeout(function () { if (!stack.length) sc.hidden = true; }, 220); document.body.style.overflow = ''; }
+  else sc.style.zIndex = 49 + stack.length * 2;
+}
+function closeTop() { if (stack.length) closeSheet(stack[stack.length - 1]); }
+function anySheetOpen() { return stack.length > 0; }
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeTop(); });
+
+/* ---------- detail ---------- */
+function openDetail(id) {
+  if (!byId(id)) { toast('That client is no longer in the sheet', true); return; }
+  S.openId = id; renderDetail(id); openSheet('detail'); $('detail').scrollTop = 0;
+}
+function renderDetail(id) {
+  var c = byId(id); if (!c) return;
+  var di = dueInfo(c), wa = waLink(c), tel = telLink(c);
+  var hist = S.log.filter(function (e) { return e.id === c.id; });
+  var h = '<div class="sh-h"><button class="iconbtn" onclick="closeSheet(\'detail\')" aria-label="Back">' + IC.back + '</button>' +
+    '<div style="display:flex;gap:8px"><button class="iconbtn" onclick="copyForClaude(\'' + esc(c.id) + '\')" aria-label="Copy profile for Claude">' + IC.copy + '</button>' +
+    '<button class="iconbtn" onclick="openEdit(\'' + esc(c.id) + '\')" aria-label="Edit">' + IC.edit + '</button></div></div>';
+  h += '<div class="d-head"><div class="av' + (isGhost(c) ? ' ghost' : '') + '">' + esc(initials(c.name)) + '</div><div style="min-width:0"><div class="n">' + esc(c.name) + '</div><div class="s">' + esc(c.id) + (c.phone ? ' · <span class="num">' + esc(c.phone) + '</span>' : '') + '</div></div></div>';
+  h += chipsHtml(c);
+  h += '<div class="acts">' +
+    '<a class="btn wa" ' + (wa ? 'href="' + wa + '" target="_blank" rel="noopener"' : 'aria-disabled="true"') + '>' + IC.wa + 'WhatsApp</a>' +
+    '<a class="btn" ' + (tel ? 'href="' + tel + '" target="_blank"' : 'aria-disabled="true"') + '>' + IC.call + 'Call</a></div>';
+  h += '<div class="nextbox"><div><div class="k">Next follow up</div><div class="v">' + (c.next ? esc(fmtDay(c.next)) : 'Not set') + ' <span class="due ' + di.cls + '" style="margin-left:4px">' + di.txt + '</span></div>' +
+    '<div class="k" style="margin-top:2px">Last contact ' + (c.last ? esc(fmt(c.last, true)) : '—') + (c.duration ? ' · ' + esc(c.duration) : '') + '</div></div>' +
+    '<button class="btn primary sm" onclick="openLog(\'' + esc(c.id) + '\')">' + IC.check + 'Log</button></div>';
+  h += '<div class="grid">' +
+    cell('Address', c.address, true) + cell('Type', c.type) + cell('Rooms / size', c.rooms) +
+    cell('Status', c.status) + cell('Topic', c.topic) + cell('Stage', c.stage) + cell('Cadence', c.duration) + '</div>';
+  h += '<h2>Remarks</h2><div class="remarks">' + (c.remarks ? esc(c.remarks) : '<span style="color:var(--muted)">No remarks yet.</span>') + '</div>';
+  h += '<h2>History <span class="count">' + hist.length + '</span></h2>';
+  if (hist.length) {
+    h += '<div class="tl">' + hist.map(function (e) {
+      var meta = /added|edited/i.test(e.action);
+      return '<div class="it' + (meta ? ' muted' : '') + '"><div class="w">' + esc(fmtDay(e.at.slice(0, 10))) + ' · ' + esc(e.at.slice(11, 16)) + '</div><div class="a">' + esc(e.action) + '</div>' + (e.note ? '<div class="x">' + esc(e.note) + '</div>' : '') + '</div>';
+    }).join('') + '</div>';
+  } else h += '<div class="empty" style="padding:16px">Follow-ups you log from this app will show here.</div>';
+  $('detailBody').innerHTML = h;
+}
+function cell(k, v, wide) { return '<div class="' + (wide ? 'wide' : '') + '"><div class="k">' + k + '</div><div class="v">' + (v ? esc(v) : '<span style="color:var(--muted)">—</span>') + '</div></div>'; }
+
+/* Copies a tidy profile to paste into the CRM chat with Claude. */
+function copyForClaude(id) {
+  var c = byId(id); if (!c) return;
+  var hist = S.log.filter(function (e) { return e.id === c.id && !/added|edited/i.test(e.action); }).slice(0, 5);
+  var t = 'Client profile\n' +
+    'Name: ' + c.name + ' (' + c.id + ')\n' +
+    'Property: ' + ([c.rooms, c.type].filter(Boolean).join(' ') || '-') + (c.address ? ', ' + c.address : '') + '\n' +
+    'Status: ' + (c.status || '-') + ' | Topic: ' + (c.topic || '-') + ' | Stage: ' + (c.stage || '-') + ' | Cadence: ' + (c.duration || '-') + '\n' +
+    'Last contact: ' + (c.last ? fmt(c.last, true) : '-') + ' | Next follow up: ' + (c.next ? fmt(c.next, true) : '-') + '\n' +
+    'Notes: ' + (c.remarks || '-') +
+    (hist.length ? '\nRecent follow-ups:\n' + hist.map(function (e) { return '- ' + fmt(e.at.slice(0, 10), true) + ': ' + e.action + (e.note ? ' (' + e.note + ')' : ''); }).join('\n') : '');
+  copyText(t).then(function () { toast('Profile copied. Paste it into your CRM chat.'); });
+}
+function copyText(t) {
+  if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(t).catch(function () { return legacyCopy(t); });
+  return Promise.resolve(legacyCopy(t));
+}
+function legacyCopy(t) { var a = document.createElement('textarea'); a.value = t; a.style.position = 'fixed'; a.style.opacity = '0'; document.body.appendChild(a); a.select(); try { document.execCommand('copy'); } catch (e) {} a.remove(); }
+
+/* ---------- log follow-up ---------- */
+var OUTCOMES = ['Messaged', 'Called', 'No reply', 'Met up', 'Sent listings'];
+var L = {};
+function openLog(id) {
+  var c = byId(id); if (!c) return;
+  L = { id: id, action: 'Messaged', duration: c.duration || 'Monthly' };
+  var durs = S.options.duration && S.options.duration.length ? S.options.duration : ['Daily', '2 Days', 'Weekly', 'Bi-Weekly', 'Monthly'];
+  var h = '<div class="grab"></div><div class="sh-h"><h3>Log follow-up · ' + esc(c.name) + '</h3><button class="iconbtn" onclick="closeSheet(\'logSheet\')" aria-label="Close">' + IC.x + '</button></div>';
+  h += '<label class="fl"><span>What happened</span><div class="seg" id="segAct">' + OUTCOMES.map(function (o) { return '<button type="button" class="' + (o === L.action ? 'on' : '') + '" onclick="pick(\'segAct\',this,\'action\')">' + o + '</button>'; }).join('') + '</div></label>';
+  h += '<label class="fl"><span>Note (optional)</span><textarea class="in" id="lgNote" placeholder="e.g. Sent Hillock Green discount. Wants to revisit after CNY."></textarea></label>';
+  h += '<label class="check"><input type="checkbox" id="lgRem" checked> Also add the note to Remarks in the sheet</label>';
+  h += '<label class="fl"><span>Follow up again in</span><div class="seg" id="segDur">' + durs.map(function (o) { return '<button type="button" class="' + (o === L.duration ? 'on' : '') + '" onclick="pick(\'segDur\',this,\'duration\');updNext()">' + esc(o) + '</button>'; }).join('') + '</div></label>';
+  h += '<p class="hint" id="lgNext"></p>';
+  h += '<div class="two">' + selectHtml('lgStatus', 'Status', S.options.status, c.status) + selectHtml('lgStage', 'Stage', S.options.stage, c.stage) + '</div>';
+  h += '<button class="btn primary" style="width:100%;height:50px;margin-top:4px" id="lgSave" onclick="saveLog()">' + IC.check + 'Save follow-up</button>';
+  $('logBody').innerHTML = h; updNext(); openSheet('logSheet');
+}
+function pick(seg, btn, key) { $(seg).querySelectorAll('button').forEach(function (b) { b.classList.remove('on'); }); btn.classList.add('on'); L[key] = btn.textContent; }
+function updNext() { var n = nextFrom(S.today, L.duration); $('lgNext').innerHTML = n ? 'Next follow up will be <b>' + esc(fmtDay(n)) + '</b>.' : 'This cadence has no date in the sheet formula.'; }
+function selectHtml(id, label, opts, cur) {
+  opts = (opts || []).slice(); if (cur && opts.indexOf(cur) < 0) opts.unshift(cur);
+  return '<label class="fl"><span>' + label + '</span><select class="in" id="' + id + '"><option value="">—</option>' + opts.map(function (o) { return '<option' + (o === cur ? ' selected' : '') + '>' + esc(o) + '</option>'; }).join('') + '</select></label>';
+}
+
+function saveLog() {
+  var c = byId(L.id); if (!c) return;
+  var note = $('lgNote').value.trim();
+  var p = { row: c.row, id: c.id, action: L.action, note: note, duration: L.duration !== c.duration ? L.duration : '', status: $('lgStatus').value !== c.status ? $('lgStatus').value : '', stage: $('lgStage').value !== c.stage ? $('lgStage').value : '', addToRemarks: $('lgRem').checked };
+  closeSheet('logSheet');
+  commitFollowUp(c, p);
+}
+
+/* One-tap Done from a card: logs "Followed up" on the current cadence. */
+function quickDone(id, btn) {
+  var c = byId(id); if (!c) return;
+  if (btn) btn.disabled = true;
+  commitFollowUp(c, { row: c.row, id: c.id, action: 'Followed up', note: '', duration: '', status: '', stage: '', addToRemarks: false });
+}
+
+/* Optimistic: the card moves immediately, the sheet's reply then replaces it. */
+function commitFollowUp(c, p) {
+  var prev = { last: c.last, next: c.next, duration: c.duration, status: c.status, stage: c.stage, remarks: c.remarks };
+  c.last = S.today;
+  if (p.duration) c.duration = p.duration;
+  if (p.status) c.status = p.status;
+  if (p.stage) c.stage = p.stage;
+  c.next = nextFrom(c.last, c.duration) || c.next;
+  if (p.note && p.addToRemarks) c.remarks = (c.remarks ? c.remarks + '\n' : '') + ddmm() + ': ' + p.note;
+  var tempLog = { logId: 'tmp' + Date.now(), at: S.today + 'T' + hhmm(), id: c.id, name: c.name, action: p.action, note: p.note };
+  S.log.unshift(tempLog);
+  render();
+
+  var undoArgs = null;
+  toast(c.name + ' · next ' + fmt(c.next), false, function () {
+    if (!undoArgs) { toast('Still saving, try again in a second'); return; }
+    Object.assign(c, prev);
+    S.log = S.log.filter(function (e) { return e.logId !== undoArgs.logId && e !== tempLog; });
+    render();
+    api('undoFollowUp', undoArgs).then(function (r) { replaceClient(r.client); render(); toast('Undone'); }).catch(function (e) { toast('Undo failed: ' + (e.message || e), true); load(); });
+  });
+
+  api('logFollowUp', p).then(function (r) {
+    replaceClient(r.client);
+    var i = S.log.indexOf(tempLog);
+    if (r.logEntry) { if (i >= 0) S.log[i] = r.logEntry; else S.log.unshift(r.logEntry); }
+    undoArgs = { row: r.client.row, id: r.client.id, prevLast: prev.last, prevDuration: p.duration ? prev.duration : '', prevStatus: p.status ? prev.status : '', prevStage: p.stage ? prev.stage : '', prevRemarks: (p.note && p.addToRemarks) ? prev.remarks : null, logId: r.logEntry ? r.logEntry.logId : '' };
+    render();
+  }).catch(function (e) {
+    Object.assign(c, prev); S.log = S.log.filter(function (x) { return x !== tempLog; }); render();
+    toast('Not saved: ' + (e.message || e), true);
+  });
+}
+function replaceClient(nc) { if (!nc) return; for (var i = 0; i < S.clients.length; i++) if (S.clients[i].id === nc.id) { S.clients[i] = nc; return; } S.clients.push(nc); }
+function ddmm() { var d = d0(S.today); return ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2); }
+function hhmm() { var d = new Date(); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
+
+/* ---------- add / edit ---------- */
+function openEdit(id) {
+  var c = id ? byId(id) : null;
+  var v = c || { name: '', phone: '', address: '', type: 'HDB', rooms: '', status: 'Active', topic: '', stage: 'Follow Up', duration: 'Monthly', last: S.today, remarks: '' };
+  var o = S.options;
+  var h = '<div class="grab"></div><div class="sh-h"><h3>' + (c ? 'Edit ' + esc(c.name) : 'New client') + '</h3><button class="iconbtn" onclick="closeSheet(\'editSheet\')" aria-label="Close">' + IC.x + '</button></div>';
+  h += '<label class="fl"><span>Name *</span><input class="in" id="eName" value="' + esc(v.name) + '" autocomplete="off"></label>';
+  h += '<div class="two"><label class="fl"><span>Phone</span><input class="in num" id="ePhone" inputmode="tel" value="' + esc(v.phone) + '"></label>' +
+       '<label class="fl"><span>Last followed up</span><input class="in" type="date" id="eLast" value="' + esc(v.last) + '" onchange="updEditNext()"></label></div>';
+  h += '<label class="fl"><span>Address</span><input class="in" id="eAddr" value="' + esc(v.address) + '" placeholder="e.g. 402A Fernvale Lane #08-229"></label>';
+  h += '<div class="two">' + selectHtml('eType', 'Type', o.type, v.type) + selectHtml('eRooms', 'Rooms / size', o.rooms, v.rooms) + '</div>';
+  h += '<div class="two">' + selectHtml('eStatus', 'Status', o.status, v.status) + selectHtml('eTopic', 'Topic', o.topic, v.topic) + '</div>';
+  h += '<div class="two">' + selectHtml('eStage', 'Stage', o.stage, v.stage) + selectHtml('eDur', 'Cadence', o.duration, v.duration) + '</div>';
+  h += '<p class="hint" id="eNext"></p>';
+  h += '<label class="fl"><span>Remarks</span><textarea class="in" id="eRem" rows="5">' + esc(v.remarks) + '</textarea></label>';
+  h += '<button class="btn primary" style="width:100%;height:50px" id="eSave" onclick="saveEdit(' + (c ? '\'' + esc(c.id) + '\'' : 'null') + ')">' + (c ? 'Save changes' : IC.plus + 'Add client') + '</button>';
+  $('editBody').innerHTML = h;
+  $('eDur').addEventListener('change', updEditNext);
+  updEditNext(); openSheet('editSheet');
+  if (!c) setTimeout(function () { $('eName').focus(); }, 280);
+}
+function updEditNext() { var n = nextFrom($('eLast').value, $('eDur').value); $('eNext').innerHTML = n ? 'Next follow up: <b>' + esc(fmtDay(n)) + '</b> (worked out by the sheet).' : ''; }
+
+function saveEdit(id) {
+  var name = $('eName').value.trim();
+  if (!name) { $('eName').focus(); toast('Name is required', true); return; }
+  var f = { name: name, phone: $('ePhone').value.trim(), address: $('eAddr').value.trim(), type: $('eType').value, rooms: $('eRooms').value, status: $('eStatus').value, topic: $('eTopic').value, stage: $('eStage').value, duration: $('eDur').value, last: $('eLast').value, remarks: $('eRem').value };
+  var c = id ? byId(id) : null;
+  var btn = $('eSave'); btn.disabled = true; btn.textContent = 'Saving…';
+  api('saveClient', { row: c ? c.row : null, id: c ? c.id : null, fields: f }).then(function (r) {
+    replaceClient(r.client);
+    S.log.unshift({ logId: 'tmp' + Date.now(), at: S.today + 'T' + hhmm(), id: r.client.id, name: r.client.name, action: c ? 'Edited' : 'Added', note: '' });
+    render(); closeSheet('editSheet');
+    toast(c ? 'Saved' : r.client.name + ' added as ' + r.client.id);
+    if (!c) setTimeout(function () { openDetail(r.client.id); }, 300);
+  }).catch(function (e) { btn.disabled = false; btn.textContent = c ? 'Save changes' : 'Add client'; toast('Not saved: ' + (e.message || e), true); });
+}
+
+/* ==========================================================================
+   Toast
+   ========================================================================== */
+var toastT;
+function toast(msg, err, undo) {
+  var t = $('toast');
+  t.className = 'toast' + (err ? ' err' : '');
+  t.innerHTML = '<span>' + esc(msg) + '</span>' + (undo ? '<button id="undoBtn">Undo</button>' : '');
+  if (undo) $('undoBtn').onclick = function () { t.classList.remove('show'); undo(); };
+  requestAnimationFrame(function () { t.classList.add('show'); });
+  clearTimeout(toastT); toastT = setTimeout(function () { t.classList.remove('show'); }, undo ? 6000 : 2800);
+}
+
+/* ==========================================================================
+   Demo backend — used only when the page is opened outside Apps Script.
+   Invented clients, nothing real.
+   ========================================================================== */
+var Demo = (function () {
+  var today = ymd(new Date());
+  function add(n) { var d = new Date(); d.setDate(d.getDate() + n); return ymd(d); }
+  var seed = [
+    ['Marcus Tan', 'Upgrade', 'Active', 'Monthly', -34, '4-Room', '812C Choa Chu Kang Ave 1 #09-114', 'MOP reached Mar. Wants a 3-bedder condo in the west, wife prefers near school.'],
+    ['Priya Nair', 'Rightsize', 'Active', 'Bi-Weekly', -15, '5-Room', '461B Sengkang West Way #11-201', 'Kids moved out. Looking at 3-room resale near Rivervale. Needs sale timeline.'],
+    ['Daniel Lim', 'Pure Buying', 'Ghost', 'Monthly', -31, '', '', 'First timer, viewed Hillock Green twice. Went quiet after IPA chat.'],
+    ['Siti Rahmah', 'Pure Selling', 'Active', 'Weekly', -7, '4-Room', '402A Fernvale Lane #12-217', 'Selling to move in with parents. Asked for recent 4-room transactions.'],
+    ['Jason & Mei Ling', 'Upgrade', 'Active', 'Monthly', -30, '5-Room', '640A Senja Close #15-302', 'Waiting for Thomson Reserve. Budget around 2.2m.'],
+    ['Mdm Ng', 'Investment', 'Active', '2 Days', -2, '', '', 'Wants a 2-bedder for rental yield. Send Lentor comparisons.'],
+    ['Kelvin Ho', 'Referral Program', 'Active', 'Monthly', -20, '3-Room', '459A Fernvale Rd #04-155', 'Happy past client. Said he will refer his colleague.'],
+    ['Aisha Rahman', 'Upgrade', 'Ghost', 'Monthly', -60, '4-Room', '615 Choa Chu Kang St 62 #07-88', 'Last said maybe next year. Check in lightly.'],
+    ['Leona Chua', 'Pure Buying', 'Active', 'Bi-Weekly', -12, '', '', 'Prefers Thomson Reserve 1 or 2 bedder. No hard selling.'],
+    ['Raymond Goh', 'Kaypoh', 'Active', 'Monthly', -25, '4-Room', '297A Compassvale St #10-332', 'Just curious about his flat value.'],
+    ['Callie Fong', 'Rightsize', 'Active', 'Monthly', -40, '', 'Semi-D, Upper Thomson', 'Rightsizing or buying for son. 15-month wait-out removed, more options now.'],
+    ['Benjamin Teo', 'Upgrade', 'Active', 'Monthly', -10, '5-Room', '524 Woodlands Dr 14 #06-45', 'Needs IPA before shortlisting.'],
+    ['Farah Ismail', 'Pure Buying', 'Active', 'Weekly', -3, '', '', 'Looking for 5-room EA near a mosque in Sengkang or Woodlands.'],
+    ['Grace Wong', 'Referral Program', 'Ghost', 'Monthly', -5, '4-Room', '402B Fernvale Lane #16-223', 'Busy next few weeks.']
+  ];
+  var clients = seed.map(function (s, i) {
+    var last = add(s[4]);
+    return { row: i + 2, id: 'CI' + ('000' + (i + 1)).slice(-4), name: s[0], topic: s[1], status: s[2], duration: s[3], last: last, next: '', phone: '9' + (1000000 + i * 73519 % 8999999), address: s[6], type: 'HDB', rooms: s[5], stage: 'Follow Up', remarks: s[7] };
+  });
+  clients.forEach(function (c) { c.next = nextFrom2(c.last, c.duration); });
+  function nextFrom2(l, d) { var keep = S.today; S.today = today; var n = nextFrom(l, d); S.today = keep; return n; }
+  var log = [
+    { logId: 'a1', at: add(-1) + 'T18:20', id: 'CI0005', name: 'Jason & Mei Ling', action: 'Messaged', note: 'Shared Thomson Reserve showflat crowd photo.' },
+    { logId: 'a2', at: add(-1) + 'T11:05', id: 'CI0002', name: 'Priya Nair', action: 'Called', note: 'Wants 3-room comparables in Rivervale.' },
+    { logId: 'a3', at: add(-3) + 'T15:40', id: 'CI0009', name: 'Leona Chua', action: 'Messaged', note: 'FYI on Hillock Green discount. No pressure.' },
+    { logId: 'a4', at: add(-6) + 'T10:12', id: 'CI0013', name: 'Farah Ismail', action: 'Sent listings', note: '3 EA listings near Masjid Al-Mawaddah.' }
+  ];
+  var opts = { status: ['Active', 'Ghost'], topic: ['Pure Buying', 'Pure Selling', 'Upgrade', 'Rightsize', 'Investment', 'Referral Program', 'Kaypoh'], stage: ['Follow Up'], duration: ['Daily', '2 Days', 'Weekly', 'Bi-Weekly', 'Monthly'], type: ['HDB', 'Condo', 'EC', 'Landed', 'Rental'], rooms: ['2-Room', '3-Room', '4-Room', '5-Room', 'Executive', '3Gen'] };
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  function find(id) { return clients.filter(function (c) { return c.id === id; })[0]; }
+  var handlers = {
+    importPpcLeads: function () { return { added: 0, already: 0, skipped: 0 }; },
+    getData: function () { return { owner: 'Kenn', today: today, clients: clone(clients), options: opts, log: clone(log), demo: true }; },
+    logFollowUp: function (p) {
+      var c = find(p.id); c.last = today;
+      if (p.duration) c.duration = p.duration; if (p.status) c.status = p.status; if (p.stage) c.stage = p.stage;
+      if (p.note && p.addToRemarks) c.remarks = (c.remarks ? c.remarks + '\n' : '') + today.slice(8, 10) + '/' + today.slice(5, 7) + ': ' + p.note;
+      c.next = nextFrom2(c.last, c.duration);
+      var e = { logId: 'd' + Date.now(), at: today + 'T' + hhmm(), id: c.id, name: c.name, action: p.action, note: p.note }; log.unshift(e);
+      return { client: clone(c), logEntry: clone(e) };
+    },
+    undoFollowUp: function (p) {
+      var c = find(p.id); c.last = p.prevLast; if (p.prevDuration) c.duration = p.prevDuration; if (p.prevStatus) c.status = p.prevStatus; if (p.prevStage) c.stage = p.prevStage; if (p.prevRemarks != null) c.remarks = p.prevRemarks;
+      c.next = nextFrom2(c.last, c.duration); log = log.filter(function (e) { return e.logId !== p.logId; });
+      return { client: clone(c) };
+    },
+    saveClient: function (p) {
+      var c = p.id ? find(p.id) : null;
+      if (!c) { c = { row: clients.length + 2, id: 'CI' + ('000' + (clients.length + 1)).slice(-4) }; clients.push(c); }
+      Object.keys(p.fields).forEach(function (k) { c[k] = p.fields[k]; });
+      c.next = nextFrom2(c.last, c.duration);
+      return { client: clone(c) };
+    }
+  };
+  return { call: function (fn, arg) { return new Promise(function (res, rej) { setTimeout(function () { try { res(handlers[fn](arg)); } catch (e) { rej(e); } }, 350); }); } };
+})();
+
+load(false);
+</script>
+</body>
+</html>
