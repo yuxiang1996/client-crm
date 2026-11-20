@@ -241,7 +241,8 @@ function saveClient(p) {
     var f = p.fields || {};
     var isNew = !p.id && !p.row;
 
-    if (!String(f.name || '').trim()) throw new Error('Name is required.');
+    // Partial updates (sorting a lead, moving source) send only the changed fields.
+    if ((isNew || 'name' in f) && !String(f.name || '').trim()) throw new Error('Name is required.');
 
     var row;
     if (isNew) {
