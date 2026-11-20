@@ -68,7 +68,7 @@ var COLS = {
   draft:    'Next Message' // added by setupColumns(): drafted follow-up, cleared when logged
 };
 
-var SOURCES   = ['Master List', 'PPC'];
+var SOURCES   = ['Door-knock', 'PPC', 'Master List'];   // Master List = everything else (referrals, past clients)
 var TIMELINES = ['Within 3 months', '3 to 6 months', '6 to 12 months', 'Over 1 year'];
 
 /* Dropdown choices used only when the sheet's own validation can't be read.
@@ -486,8 +486,15 @@ function setupColumns() {
     var lastHead = 0;
     head.forEach(function (h, i) { if (h) lastHead = i + 1; });
     [['Source', SOURCES], ['Timeline', TIMELINES], ['Next Message', null]].forEach(function (pair) {
-      var exists = head.some(function (h) { return h.toLowerCase() === pair[0].toLowerCase(); });
-      if (exists) return;
+      var at = head.map(function (h) { return h.toLowerCase(); }).indexOf(pair[0].toLowerCase());
+      if (at >= 0) {
+        // Column already there: keep its dropdown in step with the current list of choices.
+        if (pair[1]) {
+          var keep = SpreadsheetApp.newDataValidation().requireValueInList(pair[1], true).setAllowInvalid(true).build();
+          sh.getRange(2, at + 1, Math.max(sh.getMaxRows() - 1, 1), 1).setDataValidation(keep);
+        }
+        return;
+      }
       lastHead += 1;
       sh.getRange(1, lastHead).setValue(pair[0]).setFontWeight('bold');
       if (pair[1]) {
