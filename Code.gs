@@ -64,7 +64,8 @@ var COLS = {
   duration: 'Duration',
   remarks:  'Other Remarks',
   source:   'Source',      // added by setupColumns(): Master List / PPC
-  timeline: 'Timeline'     // added by setupColumns(): how soon they plan to act
+  timeline: 'Timeline',    // added by setupColumns(): how soon they plan to act
+  draft:    'Next Message' // added by setupColumns(): drafted follow-up, cleared when logged
 };
 
 var SOURCES   = ['Master List', 'PPC'];
@@ -94,6 +95,7 @@ var ACTIONS = {
   logFollowUp:    function (a) { return logFollowUp(a); },
   undoFollowUp:   function (a) { return undoFollowUp(a); },
   saveClient:     function (a) { return saveClient(a); },
+  saveClients:    function (a) { return saveClients(a); },
   importPpcLeads: function ()  { return importPpcLeads(); },
   setupColumns:   function ()  { return setupColumns(); }
 };
@@ -183,6 +185,7 @@ function logFollowUp(p) {
     var prevLast = cellStr_(sh, row, map.last);
     var updates = {};
     updates.last = sheetToday_(ss);
+    if (map.draft != null) updates.draft = '';      // the drafted message has now been sent
     if (p.duration) updates.duration = p.duration;
     if (p.status)   updates.status   = p.status;
     if (p.stage)    updates.stage    = p.stage;
@@ -238,6 +241,29 @@ function saveClient(p) {
     var ss = SpreadsheetApp.openById(SHEET_ID);
     var sh = clientSheet_(ss);
     var map = headerMap_(sh);
+    return saveOne_(ss, sh, map, p, true);
+  });
+}
+
+/**
+ * Many saves in one call (used to sync from WhatsApp). items = [{ row?, id?, fields }].
+ * Same rules as saveClient; no log line per client. Returns the saved clients.
+ */
+function saveClients(items) {
+  return withLock_(function () {
+    var ss = SpreadsheetApp.openById(SHEET_ID);
+    var sh = clientSheet_(ss);
+    var map = headerMap_(sh);
+    var out = [], errors = [];
+    (items || []).forEach(function (p, i) {
+      try { out.push(saveOne_(ss, sh, map, p, false).client); }
+      catch (e) { errors.push((p.id || ('item ' + i)) + ': ' + (e && e.message || e)); }
+    });
+    return { saved: out.length, errors: errors, clients: out };
+  });
+}
+
+function saveOne_(ss, sh, map, p, log) {
     var f = p.fields || {};
     var isNew = !p.id && !p.row;
 
@@ -268,10 +294,11 @@ function saveClient(p) {
     SpreadsheetApp.flush();
 
     var client = readRow_(sh, map, row);
-    var action = isNew ? 'Added' : (p.logAction ? String(p.logAction).slice(0, 60) : 'Edited');
-    appendLog_(ss, { id: client.id, name: client.name, action: action, note: '', prevLast: '' });
+    if (log) {
+      var action = isNew ? 'Added' : (p.logAction ? String(p.logAction).slice(0, 60) : 'Edited');
+      appendLog_(ss, { id: client.id, name: client.name, action: action, note: '', prevLast: '' });
+    }
     return { client: client, logEntry: null };
-  });
 }
 
 /**
@@ -430,7 +457,8 @@ function rowToClient_(row, map, rowNum) {
     status: s('status'), topic: s('topic'), stage: s('stage'),
     duration: s('duration'), remarks: s('remarks'),
     source: s('source') || guessSource_(s('remarks')),
-    timeline: s('timeline')
+    timeline: s('timeline'),
+    draft: map.draft != null && row[map.draft] != null ? String(row[map.draft]) : ''
   };
 }
 
@@ -457,13 +485,17 @@ function setupColumns() {
     var head = sh.getRange(1, 1, 1, width).getValues()[0].map(function (h) { return String(h).trim(); });
     var lastHead = 0;
     head.forEach(function (h, i) { if (h) lastHead = i + 1; });
-    [['Source', SOURCES], ['Timeline', TIMELINES]].forEach(function (pair) {
+    [['Source', SOURCES], ['Timeline', TIMELINES], ['Next Message', null]].forEach(function (pair) {
       var exists = head.some(function (h) { return h.toLowerCase() === pair[0].toLowerCase(); });
       if (exists) return;
       lastHead += 1;
       sh.getRange(1, lastHead).setValue(pair[0]).setFontWeight('bold');
-      var rule = SpreadsheetApp.newDataValidation().requireValueInList(pair[1], true).setAllowInvalid(true).build();
-      sh.getRange(2, lastHead, Math.max(sh.getMaxRows() - 1, 1), 1).setDataValidation(rule);
+      if (pair[1]) {
+        var rule = SpreadsheetApp.newDataValidation().requireValueInList(pair[1], true).setAllowInvalid(true).build();
+        sh.getRange(2, lastHead, Math.max(sh.getMaxRows() - 1, 1), 1).setDataValidation(rule);
+      } else {
+        sh.setColumnWidth(lastHead, 360);
+      }
       head[lastHead - 1] = pair[0];
       out.added.push(pair[0] + ' in column ' + lastHead);
     });

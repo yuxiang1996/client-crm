@@ -222,6 +222,19 @@
   .pill.ppc{background:#E9E3F7;color:#5A3E99}
   .chip.src{background:#E9E3F7;color:#5A3E99}.chip.mine{background:var(--mint);color:var(--green-d)}
   .chip.tl{background:#FFE9D6;color:#9A4A0B}
+  /* today's to-do */
+  .todo{background:linear-gradient(180deg,#fff, #FBFDFB);border:1.5px solid var(--green-b);border-radius:var(--r);box-shadow:var(--shadow);padding:14px 14px 12px}
+  .todo .why{font-size:12px;font-weight:700;color:var(--green);margin:8px 0 4px;text-transform:uppercase;letter-spacing:.04em}
+  .draft{background:#F3F8F4;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:13.5px;color:var(--ink2);white-space:pre-wrap;max-height:7.4em;overflow:hidden;position:relative}
+  .draft.full{max-height:none}
+  .draft::after{content:"";position:absolute;left:0;right:0;bottom:0;height:22px;background:linear-gradient(transparent,#F3F8F4)}
+  .draft.full::after{display:none}
+  h2.todo-h{color:var(--green)} h2.todo-h .count{background:var(--mint);color:var(--green-d)}
+  .nb .pill{position:relative}
+  .nb .bdg{position:absolute;top:-4px;right:2px;min-width:18px;height:18px;border-radius:99px;background:var(--red);color:#fff;font-size:10.5px;font-weight:800;display:grid;place-items:center;padding:0 5px}
+  .tdrow{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line2)}
+  .tdrow:last-child{border-bottom:none}
+  .tdrow .who .s{white-space:normal}
   /* classify block on detail */
   .cls{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 14px;margin:12px 0}
   .cls .k{font-size:12px;color:var(--muted);font-weight:700;margin:0 0 6px}
@@ -293,6 +306,7 @@
 <div class="sheet full" id="detail" hidden><div class="inner" id="detailBody"></div></div>
 <div class="sheet" id="logSheet" hidden><div class="inner" id="logBody"></div></div>
 <div class="sheet" id="editSheet" hidden><div class="inner" id="editBody"></div></div>
+<div class="sheet" id="todoSheet" hidden><div class="inner" id="todoBody"></div></div>
 <div class="toast" id="toast" role="status"></div>
 
 <div class="gate" id="gate" hidden>
@@ -450,7 +464,7 @@ function $(id) { return document.getElementById(id); }
 function initials(n) { var p = String(n).replace(/\(.*?\)/g, '').trim().split(/\s+/); return ((p[0] || '')[0] || '?').toUpperCase() + ((p.length > 1 ? p[p.length - 1][0] : (p[0] || '')[1]) || '').toUpperCase(); }
 function byId(id) { for (var i = 0; i < S.clients.length; i++) if (S.clients[i].id === id) return S.clients[i]; return null; }
 function phoneDigits(p) { var d = String(p || '').replace(/\D/g, ''); if (d.length === 8 && /^[3689]/.test(d)) d = '65' + d; return d; }
-function waLink(c) { var d = phoneDigits(c.phone); return d ? 'https://wa.me/' + d : ''; }
+function waLink(c, text) { var d = phoneDigits(c.phone); return d ? 'https://wa.me/' + d + (text ? '?text=' + encodeURIComponent(text) : '') : ''; }
 function telLink(c) { var d = phoneDigits(c.phone); return d ? 'tel:+' + d : ''; }
 function sub(c) { return [c.id, [c.rooms, c.type].filter(Boolean).join(' '), c.address].filter(Boolean).join(' · '); }
 function isGhost(c) { return /ghost/i.test(c.status); }
@@ -479,6 +493,7 @@ function load(manual) {
     var bn = $('banner');
     if (S.demo) { bn.hidden = false; bn.className = 'banner'; bn.textContent = 'Demo data · not connected to your Master List yet'; } else bn.hidden = true;
     render();
+    if (!manual) maybeShowTodo();
     if (manual) toast('Up to date · ' + S.clients.length + ' clients');
   }).catch(function (e) {
     if (e.message === 'Locked') return;
@@ -500,7 +515,7 @@ document.addEventListener('visibilitychange', function () {
   if (document.visibilityState === 'visible' && S.loadedAt && Date.now() - S.loadedAt > 5 * 60000 && !anySheetOpen()) load(false);
 });
 
-function render() { renderSrcbar(); renderToday(); renderClients(); renderActivity(); if (S.openId) renderDetail(S.openId); }
+function render() { renderSrcbar(); renderToday(); renderClients(); renderActivity(); updateBadge(); if (S.openId) renderDetail(S.openId); }
 
 function renderSrcbar() {
   var n = { all: S.clients.length, 'Master List': 0, PPC: 0 };
@@ -553,13 +568,79 @@ function renderToday() {
     tile('green', week.length, 'This week', "goFilter('week')") +
     tile('', unsorted, 'Not sorted', "goSection('unsorted')");
 
+  var todo = todoList();
   var h = '';
+  if (todo.length) {
+    h += '<h2 class="todo-h">Today\'s to-do <span class="count">' + todo.length + '</span></h2><div class="list">' + todo.map(todoCardHtml).join('') + '</div>';
+  }
+  var inTodo = {}; todo.forEach(function (c) { inTodo[c.id] = 1; });
+  over = over.filter(function (c) { return !inTodo[c.id]; });
+  today = today.filter(function (c) { return !inTodo[c.id]; });
   h += section('Overdue', over, 'red', 6);
   h += section('Due today', today, 'amber', 50);
   if (!over.length && !today.length) h += '<h2>Due today</h2><div class="empty"><b>All caught up</b>Nothing is due today. The next few are below.</div>';
   h += section('Coming up this week', week, '', 5, true);
   $('todayBody').innerHTML = h;
 }
+/*
+ * Today's to-do: everyone with a message drafted and ready to send, then
+ * anyone whose follow-up falls due today. Drafts come first because they
+ * are one tap from done.
+ */
+function todoList() {
+  var list = S.clients.filter(function (c) { return inSource(c) && (String(c.draft || '').trim() || daysUntil(c.next) === 0); });
+  list.sort(function (a, b) {
+    var ad = String(a.draft || '').trim() ? 0 : 1, bd = String(b.draft || '').trim() ? 0 : 1;
+    if (ad !== bd) return ad - bd;
+    return (a.next || '9999') < (b.next || '9999') ? -1 : 1;
+  });
+  return list;
+}
+function todoCardHtml(c) {
+  var draft = String(c.draft || '').trim(), wa = waLink(c, draft), tel = telLink(c), di = dueInfo(c);
+  return '<div class="todo">' +
+    '<div class="card-h" onclick="openDetail(\'' + esc(c.id) + '\')" style="cursor:pointer"><div class="av' + (isGhost(c) ? ' ghost' : '') + '">' + esc(initials(c.name)) + '</div>' +
+    '<div class="who"><div class="n">' + esc(c.name) + (srcOf(c) === 'PPC' ? '<span class="pill ppc">PPC</span>' : '') + '</div><div class="s">' + esc(srcOf(c) === 'PPC' ? (interestOf(c) || sub(c)) : sub(c)) + '</div></div>' +
+    '<span class="due ' + di.cls + '">' + di.txt + '</span></div>' +
+    (draft ? '<div class="why">Message ready</div><div class="draft" onclick="this.classList.toggle(\'full\')">' + esc(draft) + '</div>'
+           : '<div class="why">Follow up due</div>' + (c.remarks ? '<p class="rem" style="margin-top:2px">' + esc(lastRemark(c.remarks)) + '</p>' : '')) +
+    '<div class="acts">' +
+      '<a class="btn wa" ' + (wa ? 'href="' + wa + '" target="_blank" rel="noopener"' : 'aria-disabled="true"') + '>' + IC.wa + (draft ? 'Send on WhatsApp' : 'WhatsApp') + '</a>' +
+      (draft ? '' : '<a class="btn" ' + (tel ? 'href="' + tel + '" target="_blank"' : 'aria-disabled="true"') + '>' + IC.call + 'Call</a>') +
+      '<button class="btn primary" onclick="quickDone(\'' + esc(c.id) + '\', this)">' + IC.check + 'Done</button>' +
+    '</div></div>';
+}
+
+/* Pops up once a day on first open so the to-do is the first thing seen. */
+function maybeShowTodo() {
+  var todo = todoList(); if (!todo.length || S.demoNoPopup) return;
+  var key = 'clientcrm.todoShown';
+  try { if (localStorage.getItem(key) === S.today) return; localStorage.setItem(key, S.today); } catch (e) {}
+  openTodoSheet();
+}
+function openTodoSheet() {
+  var todo = todoList();
+  var drafts = todo.filter(function (c) { return String(c.draft || '').trim(); }).length;
+  var h = '<div class="grab"></div><div class="sh-h"><h3>Today\'s to-do · ' + todo.length + '</h3><button class="iconbtn" onclick="closeSheet(\'todoSheet\')" aria-label="Close">' + IC.x + '</button></div>';
+  h += '<p class="hint" style="margin:0 2px 8px">' + (drafts ? '<b>' + drafts + '</b> message' + (drafts === 1 ? ' is' : 's are') + ' ready: tap Send, check it in WhatsApp, hit send, then tap Done here.' : 'These follow-ups are due today.') + '</p>';
+  h += todo.map(function (c) {
+    var draft = String(c.draft || '').trim(), wa = waLink(c, draft);
+    return '<div class="tdrow"><div class="av' + (isGhost(c) ? ' ghost' : '') + '">' + esc(initials(c.name)) + '</div>' +
+      '<div class="who"><div class="n">' + esc(c.name) + '</div><div class="s">' + esc(draft ? draft.split('\n').filter(Boolean)[0].slice(0, 70) + '…' : 'Follow up due') + '</div></div>' +
+      '<a class="btn wa sm" ' + (wa ? 'href="' + wa + '" target="_blank" rel="noopener"' : 'aria-disabled="true"') + '>' + IC.wa + (draft ? 'Send' : 'Chat') + '</a></div>';
+  }).join('');
+  h += '<button class="btn primary" style="width:100%;height:50px;margin-top:14px" onclick="closeSheet(\'todoSheet\')">Let\'s go</button>';
+  $('todoBody').innerHTML = h; openSheet('todoSheet');
+}
+function updateBadge() {
+  var n = todoList().length, b = document.querySelector('.nb[data-v="today"] .pill');
+  if (!b) return;
+  var el = b.querySelector('.bdg');
+  if (!n) { if (el) el.remove(); return; }
+  if (!el) { el = document.createElement('span'); el.className = 'bdg'; b.appendChild(el); }
+  el.textContent = n;
+}
+
 function tile(cls, v, k, on) { return '<button class="tile ' + cls + '" onclick="' + on + '"><div class="v num">' + v + '</div><div class="k">' + k + '</div></button>'; }
 
 function section(title, arr, cls, cap, compact) {
@@ -770,6 +851,14 @@ function renderDetail(id) {
   h += '<div class="nextbox"><div><div class="k">Next follow up</div><div class="v">' + (c.next ? esc(fmtDay(c.next)) : 'Not set') + ' <span class="due ' + di.cls + '" style="margin-left:4px">' + di.txt + '</span></div>' +
     '<div class="k" style="margin-top:2px">Last contact ' + (c.last ? esc(fmt(c.last, true)) : '—') + (c.duration ? ' · ' + esc(c.duration) : '') + '</div></div>' +
     '<button class="btn primary sm" onclick="openLog(\'' + esc(c.id) + '\')">' + IC.check + 'Log</button></div>';
+  var draft = String(c.draft || '').trim();
+  if (draft) {
+    var waD = waLink(c, draft);
+    h += '<h2 style="margin-top:14px">Next message <span class="count">ready</span></h2><div class="draft full">' + esc(draft) + '</div>' +
+      '<div class="acts"><a class="btn wa" ' + (waD ? 'href="' + waD + '" target="_blank" rel="noopener"' : 'aria-disabled="true"') + '>' + IC.wa + 'Send on WhatsApp</a>' +
+      '<button class="btn" onclick="copyText(byId(\'' + esc(c.id) + '\').draft).then(function(){toast(\'Message copied\')})">' + IC.copy + 'Copy</button>' +
+      '<button class="btn" onclick="openEdit(\'' + esc(c.id) + '\')">' + IC.edit + 'Edit</button></div>';
+  }
   var b = bucketOf(c), src = srcOf(c), cid = esc(c.id);
   h += '<div class="cls">' +
     '<div class="k">Where they came from</div><div class="seg">' +
@@ -855,8 +944,8 @@ function quickDone(id, btn) {
 
 /* Optimistic: the card moves immediately, the sheet's reply then replaces it. */
 function commitFollowUp(c, p) {
-  var prev = { last: c.last, next: c.next, duration: c.duration, status: c.status, stage: c.stage, remarks: c.remarks };
-  c.last = S.today;
+  var prev = { last: c.last, next: c.next, duration: c.duration, status: c.status, stage: c.stage, remarks: c.remarks, draft: c.draft };
+  c.last = S.today; c.draft = '';
   if (p.duration) c.duration = p.duration;
   if (p.status) c.status = p.status;
   if (p.stage) c.stage = p.stage;
@@ -906,6 +995,7 @@ function openEdit(id) {
   h += '<div class="two">' + selectHtml('eStage', 'Stage', o.stage, v.stage) + selectHtml('eDur', 'Cadence', mergeOpts(o.duration, DURATIONS), v.duration) + '</div>';
   h += '<p class="hint" id="eNext"></p>';
   h += '<label class="fl"><span>Remarks</span><textarea class="in" id="eRem" rows="5">' + esc(v.remarks) + '</textarea></label>';
+  h += '<label class="fl"><span>Next message (shows in Today\'s to-do, clears when you log the follow-up)</span><textarea class="in" id="eDraft" rows="5" placeholder="Optional: the WhatsApp message to send next">' + esc(v.draft || '') + '</textarea></label>';
   h += '<button class="btn primary" style="width:100%;height:50px" id="eSave" onclick="saveEdit(' + (c ? '\'' + esc(c.id) + '\'' : 'null') + ')">' + (c ? 'Save changes' : IC.plus + 'Add client') + '</button>';
   $('editBody').innerHTML = h;
   $('eDur').addEventListener('change', updEditNext);
@@ -917,7 +1007,7 @@ function updEditNext() { var n = nextFrom($('eLast').value, $('eDur').value); $(
 function saveEdit(id) {
   var name = $('eName').value.trim();
   if (!name) { $('eName').focus(); toast('Name is required', true); return; }
-  var f = { name: name, phone: $('ePhone').value.trim(), address: $('eAddr').value.trim(), type: $('eType').value, rooms: $('eRooms').value, status: $('eStatus').value, topic: $('eTopic').value, stage: $('eStage').value, source: $('eSource').value, timeline: $('eTimeline').value, duration: $('eDur').value, last: $('eLast').value, remarks: $('eRem').value };
+  var f = { name: name, phone: $('ePhone').value.trim(), address: $('eAddr').value.trim(), type: $('eType').value, rooms: $('eRooms').value, status: $('eStatus').value, topic: $('eTopic').value, stage: $('eStage').value, source: $('eSource').value, timeline: $('eTimeline').value, draft: $('eDraft').value, duration: $('eDur').value, last: $('eLast').value, remarks: $('eRem').value };
   var c = id ? byId(id) : null;
   var btn = $('eSave'); btn.disabled = true; btn.textContent = 'Saving…';
   api('saveClient', { row: c ? c.row : null, id: c ? c.id : null, fields: f }).then(function (r) {
