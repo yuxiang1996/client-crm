@@ -196,6 +196,36 @@
   .gate-card p{margin:0 0 14px;color:var(--ink2);font-size:14px}
   .gate-card .in{text-align:center;margin-bottom:6px}
   .gate-msg{color:var(--red)!important;font-weight:600;min-height:1.2em;margin:4px 0 10px!important}
+  /* source switch */
+  .srcbar{display:flex;gap:4px;background:rgba(255,255,255,.7);border:1px solid var(--line);border-radius:14px;padding:4px;margin:10px 0 2px}
+  .srcbar button{flex:1;height:36px;border:none;border-radius:10px;background:transparent;font-weight:700;font-size:13.5px;color:var(--ink2)}
+  .srcbar button.on{background:var(--ink);color:#fff}
+  .srcbar .n{opacity:.6;font-weight:600;margin-left:4px}
+  /* grouped client list */
+  .sec{margin-top:18px}
+  .sec-h{width:100%;display:flex;align-items:center;gap:10px;background:none;border:none;padding:6px 2px;text-align:left}
+  .sec-h .dot{width:10px;height:10px;border-radius:50%;flex:none}
+  .sec-h .t{font-weight:800;font-size:15px;letter-spacing:-.01em}
+  .sec-h .d{font-size:12px;color:var(--muted);font-weight:600}
+  .sec-h .c{margin-left:auto;background:var(--line2);color:var(--ink2);border-radius:99px;padding:1px 9px;font-size:12px;font-weight:700}
+  .sec-h .chev{transition:transform .2s;color:var(--muted)}
+  .sec.closed .chev{transform:rotate(-90deg)}
+  .sec.closed .sec-b{display:none}
+  .sec-b{display:flex;flex-direction:column;gap:7px;margin-top:6px}
+  .rw{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+  .rw .row{border:none;border-radius:0}
+  .qs{display:flex;gap:5px;flex-wrap:wrap;padding:0 12px 11px 66px}
+  .qs button{flex:1;min-width:0;height:32px;padding:0 4px;border-radius:99px;border:1px solid var(--line);background:#fff;font-size:12px;font-weight:700;color:var(--ink2)}
+  .qs button.g{color:#7A6A45;background:#F6F2E8}
+  .qs .lbl{font-size:11.5px;color:var(--muted);font-weight:600;width:100%;margin-bottom:1px}
+  .pill{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.03em;padding:1px 6px;border-radius:6px;margin-left:6px;vertical-align:2px}
+  .pill.ppc{background:#E9E3F7;color:#5A3E99}
+  .chip.src{background:#E9E3F7;color:#5A3E99}.chip.mine{background:var(--mint);color:var(--green-d)}
+  .chip.tl{background:#FFE9D6;color:#9A4A0B}
+  /* classify block on detail */
+  .cls{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 14px;margin:12px 0}
+  .cls .k{font-size:12px;color:var(--muted);font-weight:700;margin:0 0 6px}
+  .cls .seg{margin-bottom:12px}.cls .seg:last-child{margin-bottom:0}
   .skel{height:84px;border-radius:var(--r);background:linear-gradient(90deg,#E7F0EA,#F3F8F4,#E7F0EA);background-size:200% 100%;animation:sk 1.2s infinite}
   @keyframes sk{to{background-position:-200% 0}}
   @media (min-width:600px){ .tiles .tile .v{font-size:26px} }
@@ -211,6 +241,7 @@
     </button>
   </div>
   <div id="banner" class="banner" hidden></div>
+  <div class="srcbar" id="srcbar" role="tablist" aria-label="Lead source"></div>
 
   <!-- TODAY -->
   <section id="v-today">
@@ -230,14 +261,13 @@
     <div class="filters" id="filters"></div>
     <div class="tools">
       <span id="ccount"></span>
-      <select id="sort" onchange="renderClients()" aria-label="Sort">
+      <select id="sort" onchange="renderClients()" aria-label="Sort within each group">
         <option value="next">Next follow up</option>
         <option value="last">Longest since contact</option>
         <option value="name">Name A–Z</option>
-        <option value="id">Client ID</option>
       </select>
     </div>
-    <div class="list tight" id="clientList"></div>
+    <div id="clientList"></div>
     <button class="btn ghostbtn" style="width:100%;margin-top:16px" onclick="importPpc(this)">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v3h16v-3"/></svg>Import PPC leads (Kwang / Seah)
     </button>
@@ -280,7 +310,15 @@
 /* ==========================================================================
    State + backend bridge
    ========================================================================== */
-var S = { clients: [], options: {}, log: [], today: '', owner: 'Kenn', view: 'today', filter: 'all', topic: '', loadedAt: 0, demo: false };
+var S = { clients: [], options: {}, log: [], today: '', owner: 'Kenn', view: 'today', filter: 'all', topic: '', loadedAt: 0, demo: false, source: 'all', closed: { ghost: true } };
+(function restorePrefs() {
+  try {
+    var p = JSON.parse(localStorage.getItem('clientcrm.prefs') || '{}');
+    if (p.source) S.source = p.source;
+    if (p.closed) S.closed = p.closed;
+  } catch (e) {}
+})();
+function savePrefs() { try { localStorage.setItem('clientcrm.prefs', JSON.stringify({ source: S.source, closed: S.closed })); } catch (e) {} }
 
 /* The Apps Script web app that reads and writes the Master List. */
 var API_URL = 'https://script.google.com/macros/s/AKfycbzPhiiogQOzhHNi7mJ9yUanG7EZhyOt8-9_uElnjGUEMM9eVJw-OnsZnWvbi5F7SJOO/exec';
@@ -363,11 +401,36 @@ function nextFrom(last, dur) {
     case '2 Days': d.setDate(d.getDate() + 2); break;
     case 'Weekly': d.setDate(d.getDate() + 7); break;
     case 'Bi-Weekly': d.setDate(d.getDate() + 14); break;
-    case 'Monthly': var day = d.getDate(); d.setDate(1); d.setMonth(d.getMonth() + 1); d.setDate(Math.min(day, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate())); break;
+    case 'Monthly': addMonths(d, 1); break;
+    case '2 Months': addMonths(d, 2); break;
     default: return '';
   }
   return ymd(d);
 }
+/* Same as the sheet's EDATE: same day next month(s), clamped to month end. */
+function addMonths(d, m) { var day = d.getDate(); d.setDate(1); d.setMonth(d.getMonth() + m); d.setDate(Math.min(day, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate())); }
+
+/* ==========================================================================
+   Where a lead came from, and how ready they are
+   ========================================================================== */
+var DURATIONS = ['Daily', '2 Days', 'Weekly', 'Bi-Weekly', 'Monthly', '2 Months', 'Festive Greetings'];
+var BUCKETS = [  // timeline value, short label, colour, default cadence when sorted here
+  { key: 'Within 3 months', short: '< 3m',  col: '#C23B22', cad: 'Weekly',    note: 'Acting soon · follow up weekly' },
+  { key: '3 to 6 months',   short: '3–6m',  col: '#D9822B', cad: 'Bi-Weekly', note: 'Follow up every 2 weeks' },
+  { key: '6 to 12 months',  short: '6–12m', col: '#1F63C6', cad: 'Monthly',   note: 'Follow up monthly' },
+  { key: 'Over 1 year',     short: '1 yr+', col: '#5A7D6B', cad: 'Monthly',   note: 'Keep warm monthly' }
+];
+var UNSORTED = { key: 'unsorted', label: 'Not sorted yet', col: '#9AA7A0', note: 'Tap how soon they plan to act' };
+var GHOST = { key: 'ghost', label: 'Ghosting', col: '#B9A57A', note: 'No reply · monthly or every 2 months' };
+function srcOf(c) { return c.source === 'PPC' || (!c.source && /^PPC lead/i.test(c.remarks || '')) ? 'PPC' : 'Master List'; }
+function bucketOf(c) {
+  if (isGhost(c)) return 'ghost';
+  for (var i = 0; i < BUCKETS.length; i++) if (BUCKETS[i].key === c.timeline) return c.timeline;
+  return 'unsorted';
+}
+function bucketInfo(k) { for (var i = 0; i < BUCKETS.length; i++) if (BUCKETS[i].key === k) return BUCKETS[i]; return k === 'ghost' ? GHOST : UNSORTED; }
+function inSource(c) { return S.source === 'all' || srcOf(c) === S.source; }
+function interestOf(c) { var m = String(c.remarks || '').match(/Interest: ([^·\n]+)/); return m ? m[1].trim() : ''; }
 
 function dueInfo(c) {
   var n = daysUntil(c.next);
@@ -437,7 +500,17 @@ document.addEventListener('visibilitychange', function () {
   if (document.visibilityState === 'visible' && S.loadedAt && Date.now() - S.loadedAt > 5 * 60000 && !anySheetOpen()) load(false);
 });
 
-function render() { renderToday(); renderClients(); renderActivity(); if (S.openId) renderDetail(S.openId); }
+function render() { renderSrcbar(); renderToday(); renderClients(); renderActivity(); if (S.openId) renderDetail(S.openId); }
+
+function renderSrcbar() {
+  var n = { all: S.clients.length, 'Master List': 0, PPC: 0 };
+  S.clients.forEach(function (c) { n[srcOf(c)]++; });
+  $('srcbar').innerHTML = [['all', 'All'], ['Master List', 'My list'], ['PPC', 'PPC leads']].map(function (o) {
+    return '<button role="tab" aria-selected="' + (S.source === o[0]) + '" class="' + (S.source === o[0] ? 'on' : '') + '" onclick="setSource(\'' + o[0] + '\')">' + o[1] + '<span class="n">' + n[o[0]] + '</span></button>';
+  }).join('');
+  $('srcbar').hidden = S.view === 'activity';
+}
+function setSource(s) { S.source = s; savePrefs(); render(); }
 
 /* ==========================================================================
    Navigation
@@ -446,22 +519,27 @@ function go(v) {
   S.view = v;
   ['today', 'clients', 'activity'].forEach(function (k) { $('v-' + k).hidden = k !== v; });
   document.querySelectorAll('.nb').forEach(function (b) { b.classList.toggle('on', b.dataset.v === v); });
+  $('srcbar').hidden = v === 'activity';
   window.scrollTo(0, 0);
 }
 function goFilter(f) { S.filter = f; go('clients'); renderClients(); }
+function goSection(k) {
+  S.filter = 'all'; S.closed[k] = false; savePrefs(); go('clients'); renderClients();
+  var el = document.getElementById('sec-' + k); if (el) setTimeout(function () { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 30);
+}
 
 /* ==========================================================================
    Today
    ========================================================================== */
 function renderToday() {
-  var cs = S.clients.filter(function (c) { return c.next; });
+  var cs = S.clients.filter(function (c) { return c.next && inSource(c); });
   var over = [], today = [], week = [];
   cs.forEach(function (c) { var n = daysUntil(c.next); if (n < 0) over.push(c); else if (n === 0) today.push(c); else if (n <= 7) week.push(c); });
   var bySoon = function (a, b) { return a.next < b.next ? -1 : a.next > b.next ? 1 : a.name.localeCompare(b.name); };
   over.sort(bySoon); today.sort(function (a, b) { return a.name.localeCompare(b.name); }); week.sort(bySoon);
 
   var doneToday = S.log.filter(function (e) { return e.at && e.at.slice(0, 10) === S.today && /follow|messag|call|met|no reply/i.test(e.action); }).length;
-  var active = S.clients.filter(function (c) { return /active/i.test(c.status); }).length;
+  var unsorted = S.clients.filter(function (c) { return inSource(c) && bucketOf(c) === 'unsorted'; }).length;
 
   $('greet').innerHTML = esc(greeting()) + ', <em>' + esc(S.owner) + '</em>';
   var due = over.length + today.length;
@@ -473,7 +551,7 @@ function renderToday() {
     tile('red', over.length, 'Overdue', "goFilter('overdue')") +
     tile('amber', today.length, 'Today', "goFilter('today')") +
     tile('green', week.length, 'This week', "goFilter('week')") +
-    tile('', active, 'Active', "goFilter('active')");
+    tile('', unsorted, 'Not sorted', "goSection('unsorted')");
 
   var h = '';
   h += section('Overdue', over, 'red', 6);
@@ -513,20 +591,59 @@ function cardHtml(c) {
 }
 
 function rowHtml(c) {
-  var di = dueInfo(c);
+  var di = dueInfo(c), ppc = srcOf(c) === 'PPC';
+  var line = ppc ? [interestOf(c), c.topic, c.duration] : [c.topic, [c.rooms, c.type].filter(Boolean).join(' '), c.duration];
   return '<div class="row" onclick="openDetail(\'' + esc(c.id) + '\')">' +
     '<div class="av' + (isGhost(c) ? ' ghost' : '') + '">' + esc(initials(c.name)) + '</div>' +
-    '<div class="who"><div class="n">' + esc(c.name) + '</div><div class="s">' + esc([c.topic, c.status, c.duration].filter(Boolean).join(' · ') || sub(c)) + '</div></div>' +
+    '<div class="who"><div class="n">' + esc(c.name) + (ppc && S.source === 'all' ? '<span class="pill ppc">PPC</span>' : '') + '</div>' +
+    '<div class="s">' + esc(line.filter(Boolean).join(' · ') || sub(c)) + '</div></div>' +
     '<span class="due ' + di.cls + '">' + di.txt + '</span></div>';
 }
 
 function chipsHtml(c) {
-  var h = '';
-  if (c.status) h += '<span class="chip ' + (isGhost(c) ? 'ghost' : /active/i.test(c.status) ? 'active' : '') + '">' + esc(c.status) + '</span>';
+  var h = '', b = bucketOf(c);
+  h += srcOf(c) === 'PPC' ? '<span class="chip src">PPC lead</span>' : '<span class="chip mine">My list</span>';
+  if (b === 'ghost') h += '<span class="chip ghost">Ghosting</span>';
+  else if (b !== 'unsorted') h += '<span class="chip tl">' + esc(b) + '</span>';
   if (c.topic) h += '<span class="chip topic">' + esc(c.topic) + '</span>';
-  if (c.stage) h += '<span class="chip">' + esc(c.stage) + '</span>';
   if (c.duration) h += '<span class="chip">' + esc(c.duration) + '</span>';
-  return h ? '<div class="chips">' + h + '</div>' : '';
+  return '<div class="chips">' + h + '</div>';
+}
+
+/* One-tap sort buttons shown under leads that have no timeline yet. */
+function quickSortHtml(c) {
+  return '<div class="qs" onclick="event.stopPropagation()"><span class="lbl">How soon will they act?</span>' +
+    BUCKETS.map(function (b) { return '<button onclick="classify(\'' + esc(c.id) + '\',\'' + b.key + '\')">' + b.short + '</button>'; }).join('') +
+    '<button class="g" onclick="classify(\'' + esc(c.id) + '\',\'ghost\')">Ghost</button></div>';
+}
+
+/*
+ * Sorts a lead into a timeline group (they replied) or into Ghosting.
+ * Sets a sensible cadence for the group; it can be changed afterwards.
+ */
+function classify(id, key) {
+  var c = byId(id); if (!c) return;
+  var prev = { status: c.status, timeline: c.timeline, duration: c.duration, next: c.next };
+  var f = {};
+  if (key === 'ghost') {
+    f.status = 'Ghost';
+    f.duration = (c.duration === 'Monthly' || c.duration === '2 Months') ? c.duration : 'Monthly';
+  } else {
+    f.status = 'Active'; f.timeline = key; f.duration = bucketInfo(key).cad;
+  }
+  Object.assign(c, f); c.next = nextFrom(c.last, c.duration) || c.next;
+  render();
+  toast(c.name + ' → ' + (key === 'ghost' ? 'Ghosting' : key) + ' · ' + c.duration);
+  api('saveClient', { row: c.row, id: c.id, fields: f, logAction: 'Sorted: ' + (key === 'ghost' ? 'Ghosting' : key) })
+    .then(function (r) { replaceClient(r.client); render(); })
+    .catch(function (e) { Object.assign(c, prev); render(); toast('Not saved: ' + (e.message || e), true); });
+}
+function setSourceOf(id, src) {
+  var c = byId(id); if (!c || srcOf(c) === src) return;
+  var prev = c.source; c.source = src; render();
+  api('saveClient', { row: c.row, id: c.id, fields: { source: src }, logAction: 'Moved to ' + (src === 'PPC' ? 'PPC leads' : 'My list') })
+    .then(function (r) { replaceClient(r.client); render(); })
+    .catch(function (e) { c.source = prev; render(); toast('Not saved: ' + (e.message || e), true); });
 }
 
 /* The newest line of the remarks is usually the most useful one on a card. */
@@ -535,45 +652,56 @@ function lastRemark(r) { var lines = String(r).split(/\n/).filter(function (l) {
 /* ==========================================================================
    Clients
    ========================================================================== */
-var FILTERS = [
-  ['all', 'All'], ['overdue', 'Overdue'], ['today', 'Due today'], ['week', 'Next 7 days'],
-  ['active', 'Active'], ['ghost', 'Ghost'], ['nodate', 'No follow-up date']
-];
+var FILTERS = [['all', 'Everyone'], ['overdue', 'Overdue'], ['today', 'Due today'], ['week', 'Next 7 days']];
 function renderClients() {
-  var topics = S.options.topic || [];
-  $('filters').innerHTML = FILTERS.map(function (f) { return '<button class="f' + (S.filter === f[0] ? ' on' : '') + '" onclick="S.filter=\'' + f[0] + '\';renderClients()">' + f[1] + '</button>'; }).join('') +
-    topics.map(function (t) { return '<button class="f' + (S.topic === t ? ' on' : '') + '" data-topic="' + esc(t) + '" onclick="S.topic=S.topic===this.dataset.topic?\'\':this.dataset.topic;renderClients()">' + esc(t) + '</button>'; }).join('');
+  $('filters').innerHTML = FILTERS.map(function (f) { return '<button class="f' + (S.filter === f[0] ? ' on' : '') + '" onclick="S.filter=\'' + f[0] + '\';renderClients()">' + f[1] + '</button>'; }).join('');
 
   var q = $('q').value.trim().toLowerCase();
   var qd = q.replace(/\D/g, '');
-  var list = S.clients.filter(function (c) {
+  var pool = S.clients.filter(inSource);
+  var list = pool.filter(function (c) {
     var n = daysUntil(c.next);
     switch (S.filter) {
       case 'overdue': if (!(n < 0)) return false; break;
       case 'today': if (n !== 0) return false; break;
       case 'week': if (n === null || n < 0 || n > 7) return false; break;
-      case 'active': if (!/active/i.test(c.status)) return false; break;
-      case 'ghost': if (!isGhost(c)) return false; break;
-      case 'nodate': if (c.next) return false; break;
     }
-    if (S.topic && c.topic !== S.topic) return false;
     if (!q) return true;
-    var hay = [c.name, c.id, c.address, c.remarks, c.topic, c.status, c.type, c.rooms].join(' ').toLowerCase();
+    var hay = [c.name, c.id, c.address, c.remarks, c.topic, c.status, c.type, c.rooms, c.timeline, srcOf(c)].join(' ').toLowerCase();
     return hay.indexOf(q) >= 0 || (qd.length >= 3 && String(c.phone).replace(/\D/g, '').indexOf(qd) >= 0);
   });
 
   var s = $('sort').value;
   list.sort(function (a, b) {
     if (s === 'name') return a.name.localeCompare(b.name);
-    if (s === 'id') return a.id.localeCompare(b.id, undefined, { numeric: true });
     if (s === 'last') return (a.last || '0') < (b.last || '0') ? -1 : (a.last || '0') > (b.last || '0') ? 1 : 0;
     var an = a.next || '9999', bn = b.next || '9999';
     return an < bn ? -1 : an > bn ? 1 : a.name.localeCompare(b.name);
   });
 
-  $('ccount').textContent = list.length + ' of ' + S.clients.length + ' clients';
-  $('clientList').innerHTML = list.length ? list.map(rowHtml).join('') : '<div class="empty"><b>No matches</b>Try another search or filter.</div>';
+  // Group: not sorted first (it needs your input), then by how soon, ghosts last.
+  var groups = [UNSORTED].concat(BUCKETS.map(function (b) { return { key: b.key, label: b.key, col: b.col, note: b.note }; }), [GHOST]);
+  var searching = !!q || S.filter !== 'all';
+  var h = '';
+  groups.forEach(function (g) {
+    var items = list.filter(function (c) { return bucketOf(c) === g.key; });
+    if (!items.length) return;
+    var closed = !searching && S.closed[g.key];
+    h += '<div class="sec' + (closed ? ' closed' : '') + '" id="sec-' + esc(g.key.replace(/\s+/g, '-')) + '">' +
+      '<button class="sec-h" onclick="toggleSec(\'' + esc(g.key) + '\')"><span class="dot" style="background:' + g.col + '"></span>' +
+      '<span><span class="t">' + esc(g.label) + '</span><br><span class="d">' + esc(g.note) + '</span></span>' +
+      '<span class="c">' + items.length + '</span>' +
+      '<svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>' +
+      '<div class="sec-b">' + items.map(function (c) {
+        return g.key === 'unsorted' ? '<div class="rw">' + rowHtml(c) + quickSortHtml(c) + '</div>' : rowHtml(c);
+      }).join('') + '</div></div>';
+  });
+
+  var label = S.source === 'PPC' ? 'PPC leads' : S.source === 'Master List' ? 'on my list' : 'clients';
+  $('ccount').textContent = list.length + ' of ' + pool.length + ' ' + label;
+  $('clientList').innerHTML = h || '<div class="empty"><b>No matches</b>Try another search or filter.</div>';
 }
+function toggleSec(k) { S.closed[k] = !S.closed[k]; savePrefs(); renderClients(); }
 
 /* ==========================================================================
    Activity
@@ -581,7 +709,7 @@ function renderClients() {
 function renderActivity() {
   var log = S.log.slice(0, 300);
   var weekAgo = ymd(new Date(d0(S.today) - 6 * DAY));
-  var thisWeek = S.log.filter(function (e) { return e.at && e.at.slice(0, 10) >= weekAgo && !/added|edited/i.test(e.action); });
+  var thisWeek = S.log.filter(function (e) { return e.at && e.at.slice(0, 10) >= weekAgo && !/added|edited|sorted|moved/i.test(e.action); });
   var people = {}; thisWeek.forEach(function (e) { people[e.id] = 1; });
   $('actLede').textContent = S.log.length ? thisWeek.length + ' follow-ups logged in the last 7 days, ' + Object.keys(people).length + ' different clients.' : '';
   if (!log.length) { $('actBody').innerHTML = '<div class="empty"><b>Nothing logged yet</b>Tap Done on a follow-up and it shows up here.</div>'; return; }
@@ -589,7 +717,7 @@ function renderActivity() {
   log.forEach(function (e) {
     var day = (e.at || '').slice(0, 10);
     if (day !== cur) { cur = day; var n = daysUntil(day); h += '<div class="day">' + (n === 0 ? 'Today' : n === -1 ? 'Yesterday' : esc(fmtDay(day))) + '</div>'; }
-    var meta = /added|edited/i.test(e.action);
+    var meta = /added|edited|sorted|moved/i.test(e.action);
     h += '<div class="ev" style="margin-bottom:7px" onclick="openDetail(\'' + esc(e.id) + '\')"><div class="ic' + (meta ? ' muted' : '') + '">' + (meta ? IC.edit : IC.check) + '</div>' +
       '<div style="min-width:0"><div class="t"><b>' + esc(e.name || e.id) + '</b> · ' + esc(e.action) + '</div>' + (e.note ? '<div class="nt">' + esc(e.note) + '</div>' : '') + '</div>' +
       '<div class="tm">' + esc((e.at || '').slice(11, 16)) + '</div></div>';
@@ -642,14 +770,22 @@ function renderDetail(id) {
   h += '<div class="nextbox"><div><div class="k">Next follow up</div><div class="v">' + (c.next ? esc(fmtDay(c.next)) : 'Not set') + ' <span class="due ' + di.cls + '" style="margin-left:4px">' + di.txt + '</span></div>' +
     '<div class="k" style="margin-top:2px">Last contact ' + (c.last ? esc(fmt(c.last, true)) : '—') + (c.duration ? ' · ' + esc(c.duration) : '') + '</div></div>' +
     '<button class="btn primary sm" onclick="openLog(\'' + esc(c.id) + '\')">' + IC.check + 'Log</button></div>';
+  var b = bucketOf(c), src = srcOf(c), cid = esc(c.id);
+  h += '<div class="cls">' +
+    '<div class="k">Where they came from</div><div class="seg">' +
+      ['Master List', 'PPC'].map(function (s) { return '<button type="button" class="' + (src === s ? 'on' : '') + '" onclick="setSourceOf(\'' + cid + '\',\'' + s + '\')">' + (s === 'PPC' ? 'PPC lead' : 'My list') + '</button>'; }).join('') +
+    '</div><div class="k">How soon will they act?</div><div class="seg">' +
+      BUCKETS.map(function (x) { return '<button type="button" class="' + (b === x.key ? 'on' : '') + '" onclick="classify(\'' + cid + '\',\'' + x.key + '\')">' + x.key + '</button>'; }).join('') +
+      '<button type="button" class="' + (b === 'ghost' ? 'on' : '') + '" onclick="classify(\'' + cid + '\',\'ghost\')">Ghosting</button>' +
+    '</div></div>';
   h += '<div class="grid">' +
     cell('Address', c.address, true) + cell('Type', c.type) + cell('Rooms / size', c.rooms) +
-    cell('Status', c.status) + cell('Topic', c.topic) + cell('Stage', c.stage) + cell('Cadence', c.duration) + '</div>';
+    cell('Topic', c.topic) + cell('Cadence', c.duration) + '</div>';
   h += '<h2>Remarks</h2><div class="remarks">' + (c.remarks ? esc(c.remarks) : '<span style="color:var(--muted)">No remarks yet.</span>') + '</div>';
   h += '<h2>History <span class="count">' + hist.length + '</span></h2>';
   if (hist.length) {
     h += '<div class="tl">' + hist.map(function (e) {
-      var meta = /added|edited/i.test(e.action);
+      var meta = /added|edited|sorted|moved/i.test(e.action);
       return '<div class="it' + (meta ? ' muted' : '') + '"><div class="w">' + esc(fmtDay(e.at.slice(0, 10))) + ' · ' + esc(e.at.slice(11, 16)) + '</div><div class="a">' + esc(e.action) + '</div>' + (e.note ? '<div class="x">' + esc(e.note) + '</div>' : '') + '</div>';
     }).join('') + '</div>';
   } else h += '<div class="empty" style="padding:16px">Follow-ups you log from this app will show here.</div>';
@@ -660,11 +796,12 @@ function cell(k, v, wide) { return '<div class="' + (wide ? 'wide' : '') + '"><d
 /* Copies a tidy profile to paste into the CRM chat with Claude. */
 function copyForClaude(id) {
   var c = byId(id); if (!c) return;
-  var hist = S.log.filter(function (e) { return e.id === c.id && !/added|edited/i.test(e.action); }).slice(0, 5);
+  var hist = S.log.filter(function (e) { return e.id === c.id && !/added|edited|sorted|moved/i.test(e.action); }).slice(0, 5);
   var t = 'Client profile\n' +
     'Name: ' + c.name + ' (' + c.id + ')\n' +
     'Property: ' + ([c.rooms, c.type].filter(Boolean).join(' ') || '-') + (c.address ? ', ' + c.address : '') + '\n' +
-    'Status: ' + (c.status || '-') + ' | Topic: ' + (c.topic || '-') + ' | Stage: ' + (c.stage || '-') + ' | Cadence: ' + (c.duration || '-') + '\n' +
+    'Source: ' + (srcOf(c) === 'PPC' ? 'PPC lead' : 'My list') + ' | ' + (isGhost(c) ? 'Ghosting (no reply)' : 'Responded') + ' | Timeline: ' + (c.timeline || '-') + '\n' +
+    'Topic: ' + (c.topic || '-') + ' | Cadence: ' + (c.duration || '-') + '\n' +
     'Last contact: ' + (c.last ? fmt(c.last, true) : '-') + ' | Next follow up: ' + (c.next ? fmt(c.next, true) : '-') + '\n' +
     'Notes: ' + (c.remarks || '-') +
     (hist.length ? '\nRecent follow-ups:\n' + hist.map(function (e) { return '- ' + fmt(e.at.slice(0, 10), true) + ': ' + e.action + (e.note ? ' (' + e.note + ')' : ''); }).join('\n') : '');
@@ -682,7 +819,7 @@ var L = {};
 function openLog(id) {
   var c = byId(id); if (!c) return;
   L = { id: id, action: 'Messaged', duration: c.duration || 'Monthly' };
-  var durs = S.options.duration && S.options.duration.length ? S.options.duration : ['Daily', '2 Days', 'Weekly', 'Bi-Weekly', 'Monthly'];
+  var durs = mergeOpts(S.options.duration, DURATIONS);
   var h = '<div class="grab"></div><div class="sh-h"><h3>Log follow-up · ' + esc(c.name) + '</h3><button class="iconbtn" onclick="closeSheet(\'logSheet\')" aria-label="Close">' + IC.x + '</button></div>';
   h += '<label class="fl"><span>What happened</span><div class="seg" id="segAct">' + OUTCOMES.map(function (o) { return '<button type="button" class="' + (o === L.action ? 'on' : '') + '" onclick="pick(\'segAct\',this,\'action\')">' + o + '</button>'; }).join('') + '</div></label>';
   h += '<label class="fl"><span>Note (optional)</span><textarea class="in" id="lgNote" placeholder="e.g. Sent Hillock Green discount. Wants to revisit after CNY."></textarea></label>';
@@ -695,6 +832,7 @@ function openLog(id) {
 }
 function pick(seg, btn, key) { $(seg).querySelectorAll('button').forEach(function (b) { b.classList.remove('on'); }); btn.classList.add('on'); L[key] = btn.textContent; }
 function updNext() { var n = nextFrom(S.today, L.duration); $('lgNext').innerHTML = n ? 'Next follow up will be <b>' + esc(fmtDay(n)) + '</b>.' : 'This cadence has no date in the sheet formula.'; }
+function mergeOpts(a, b) { var out = (a || []).slice(); (b || []).forEach(function (x) { if (out.indexOf(x) < 0) out.push(x); }); return out; }
 function selectHtml(id, label, opts, cur) {
   opts = (opts || []).slice(); if (cur && opts.indexOf(cur) < 0) opts.unshift(cur);
   return '<label class="fl"><span>' + label + '</span><select class="in" id="' + id + '"><option value="">—</option>' + opts.map(function (o) { return '<option' + (o === cur ? ' selected' : '') + '>' + esc(o) + '</option>'; }).join('') + '</select></label>';
@@ -755,7 +893,7 @@ function hhmm() { var d = new Date(); return ('0' + d.getHours()).slice(-2) + ':
 /* ---------- add / edit ---------- */
 function openEdit(id) {
   var c = id ? byId(id) : null;
-  var v = c || { name: '', phone: '', address: '', type: 'HDB', rooms: '', status: 'Active', topic: '', stage: 'Follow Up', duration: 'Monthly', last: S.today, remarks: '' };
+  var v = c ? Object.assign({}, c, { source: srcOf(c) }) : { name: '', phone: '', address: '', type: 'HDB', rooms: '', status: 'Active', topic: '', stage: 'Follow Up', duration: 'Monthly', last: S.today, remarks: '', source: S.source === 'PPC' ? 'PPC' : 'Master List', timeline: '' };
   var o = S.options;
   var h = '<div class="grab"></div><div class="sh-h"><h3>' + (c ? 'Edit ' + esc(c.name) : 'New client') + '</h3><button class="iconbtn" onclick="closeSheet(\'editSheet\')" aria-label="Close">' + IC.x + '</button></div>';
   h += '<label class="fl"><span>Name *</span><input class="in" id="eName" value="' + esc(v.name) + '" autocomplete="off"></label>';
@@ -763,8 +901,9 @@ function openEdit(id) {
        '<label class="fl"><span>Last followed up</span><input class="in" type="date" id="eLast" value="' + esc(v.last) + '" onchange="updEditNext()"></label></div>';
   h += '<label class="fl"><span>Address</span><input class="in" id="eAddr" value="' + esc(v.address) + '" placeholder="e.g. 402A Fernvale Lane #08-229"></label>';
   h += '<div class="two">' + selectHtml('eType', 'Type', o.type, v.type) + selectHtml('eRooms', 'Rooms / size', o.rooms, v.rooms) + '</div>';
-  h += '<div class="two">' + selectHtml('eStatus', 'Status', o.status, v.status) + selectHtml('eTopic', 'Topic', o.topic, v.topic) + '</div>';
-  h += '<div class="two">' + selectHtml('eStage', 'Stage', o.stage, v.stage) + selectHtml('eDur', 'Cadence', o.duration, v.duration) + '</div>';
+  h += '<div class="two">' + selectHtml('eSource', 'Source', ['Master List', 'PPC'], v.source) + selectHtml('eStatus', 'Status (Ghost = no reply)', o.status, v.status) + '</div>';
+  h += '<div class="two">' + selectHtml('eTimeline', 'How soon they act', BUCKETS.map(function (x) { return x.key; }), v.timeline) + selectHtml('eTopic', 'Topic', o.topic, v.topic) + '</div>';
+  h += '<div class="two">' + selectHtml('eStage', 'Stage', o.stage, v.stage) + selectHtml('eDur', 'Cadence', mergeOpts(o.duration, DURATIONS), v.duration) + '</div>';
   h += '<p class="hint" id="eNext"></p>';
   h += '<label class="fl"><span>Remarks</span><textarea class="in" id="eRem" rows="5">' + esc(v.remarks) + '</textarea></label>';
   h += '<button class="btn primary" style="width:100%;height:50px" id="eSave" onclick="saveEdit(' + (c ? '\'' + esc(c.id) + '\'' : 'null') + ')">' + (c ? 'Save changes' : IC.plus + 'Add client') + '</button>';
@@ -778,7 +917,7 @@ function updEditNext() { var n = nextFrom($('eLast').value, $('eDur').value); $(
 function saveEdit(id) {
   var name = $('eName').value.trim();
   if (!name) { $('eName').focus(); toast('Name is required', true); return; }
-  var f = { name: name, phone: $('ePhone').value.trim(), address: $('eAddr').value.trim(), type: $('eType').value, rooms: $('eRooms').value, status: $('eStatus').value, topic: $('eTopic').value, stage: $('eStage').value, duration: $('eDur').value, last: $('eLast').value, remarks: $('eRem').value };
+  var f = { name: name, phone: $('ePhone').value.trim(), address: $('eAddr').value.trim(), type: $('eType').value, rooms: $('eRooms').value, status: $('eStatus').value, topic: $('eTopic').value, stage: $('eStage').value, source: $('eSource').value, timeline: $('eTimeline').value, duration: $('eDur').value, last: $('eLast').value, remarks: $('eRem').value };
   var c = id ? byId(id) : null;
   var btn = $('eSave'); btn.disabled = true; btn.textContent = 'Saving…';
   api('saveClient', { row: c ? c.row : null, id: c ? c.id : null, fields: f }).then(function (r) {
@@ -828,7 +967,10 @@ var Demo = (function () {
   ];
   var clients = seed.map(function (s, i) {
     var last = add(s[4]);
-    return { row: i + 2, id: 'CI' + ('000' + (i + 1)).slice(-4), name: s[0], topic: s[1], status: s[2], duration: s[3], last: last, next: '', phone: '9' + (1000000 + i * 73519 % 8999999), address: s[6], type: 'HDB', rooms: s[5], stage: 'Follow Up', remarks: s[7] };
+    var ppc = i % 3 === 2;   // every third invented client is a PPC lead
+    var tl = s[2] === 'Ghost' || i % 4 === 0 ? '' : ['Within 3 months', '3 to 6 months', '6 to 12 months', 'Over 1 year'][i % 4];
+    return { row: i + 2, id: 'CI' + ('000' + (i + 1)).slice(-4), name: s[0], topic: s[1], status: s[2], duration: s[3], last: last, next: '', phone: '9' + (1000000 + i * 73519 % 8999999), address: s[6], type: 'HDB', rooms: s[5], stage: 'Follow Up',
+      remarks: (ppc ? 'PPC lead · PIC Kwang · Interest: ' + (i % 2 ? 'Thomson Reserve' : 'Woodlands Drive EC') + '\n' : '') + s[7], source: ppc ? 'PPC' : 'Master List', timeline: tl };
   });
   clients.forEach(function (c) { c.next = nextFrom2(c.last, c.duration); });
   function nextFrom2(l, d) { var keep = S.today; S.today = today; var n = nextFrom(l, d); S.today = keep; return n; }
@@ -838,7 +980,7 @@ var Demo = (function () {
     { logId: 'a3', at: add(-3) + 'T15:40', id: 'CI0009', name: 'Leona Chua', action: 'Messaged', note: 'FYI on Hillock Green discount. No pressure.' },
     { logId: 'a4', at: add(-6) + 'T10:12', id: 'CI0013', name: 'Farah Ismail', action: 'Sent listings', note: '3 EA listings near Masjid Al-Mawaddah.' }
   ];
-  var opts = { status: ['Active', 'Ghost'], topic: ['Pure Buying', 'Pure Selling', 'Upgrade', 'Rightsize', 'Investment', 'Referral Program', 'Kaypoh'], stage: ['Follow Up'], duration: ['Daily', '2 Days', 'Weekly', 'Bi-Weekly', 'Monthly'], type: ['HDB', 'Condo', 'EC', 'Landed', 'Rental'], rooms: ['2-Room', '3-Room', '4-Room', '5-Room', 'Executive', '3Gen'] };
+  var opts = { status: ['Active', 'Ghost'], topic: ['Pure Buying', 'Pure Selling', 'Upgrade', 'Rightsize', 'Investment', 'Referral Program', 'Kaypoh'], stage: ['Follow Up'], duration: ['Daily', '2 Days', 'Weekly', 'Bi-Weekly', 'Monthly', '2 Months'], type: ['HDB', 'Condo', 'EC', 'Landed', 'Rental'], rooms: ['2-Room', '3-Room', '4-Room', '5-Room', 'Executive', '3Gen'] };
   function clone(o) { return JSON.parse(JSON.stringify(o)); }
   function find(id) { return clients.filter(function (c) { return c.id === id; })[0]; }
   var handlers = {

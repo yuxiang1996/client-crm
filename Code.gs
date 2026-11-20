@@ -62,8 +62,13 @@ var COLS = {
   topic:    'Topic',
   stage:    'Stage',
   duration: 'Duration',
-  remarks:  'Other Remarks'
+  remarks:  'Other Remarks',
+  source:   'Source',      // added by setupColumns(): Master List / PPC
+  timeline: 'Timeline'     // added by setupColumns(): how soon they plan to act
 };
+
+var SOURCES   = ['Master List', 'PPC'];
+var TIMELINES = ['Within 3 months', '3 to 6 months', '6 to 12 months', 'Over 1 year'];
 
 /* Dropdown choices used only when the sheet's own validation can't be read.
    Whatever the sheet actually contains is always merged in on top. */
@@ -71,9 +76,11 @@ var DEFAULT_OPTIONS = {
   status:   ['Active', 'Ghost'],
   topic:    ['Pure Buying', 'Pure Selling', 'Upgrade', 'Rightsize', 'Investment', 'Referral Program', 'Kaypoh'],
   stage:    ['Follow Up'],
-  duration: ['Daily', '2 Days', 'Weekly', 'Bi-Weekly', 'Monthly'],
+  duration: ['Daily', '2 Days', 'Weekly', 'Bi-Weekly', 'Monthly', '2 Months'],
   type:     ['HDB', 'Condo', 'EC', 'Landed', 'Rental'],
-  rooms:    ['2-Room', '3-Room', '4-Room', '5-Room', 'Executive', '3Gen']
+  rooms:    ['2-Room', '3-Room', '4-Room', '5-Room', 'Executive', '3Gen'],
+  source:   SOURCES,
+  timeline: TIMELINES
 };
 
 var LOG_HEAD = ['Log ID', 'Timestamp', 'Client ID', 'Name', 'Action', 'Note', 'Previous Last Followed Up'];
@@ -87,7 +94,8 @@ var ACTIONS = {
   logFollowUp:    function (a) { return logFollowUp(a); },
   undoFollowUp:   function (a) { return undoFollowUp(a); },
   saveClient:     function (a) { return saveClient(a); },
-  importPpcLeads: function ()  { return importPpcLeads(); }
+  importPpcLeads: function ()  { return importPpcLeads(); },
+  setupColumns:   function ()  { return setupColumns(); }
 };
 
 function doGet() {
@@ -259,7 +267,8 @@ function saveClient(p) {
     SpreadsheetApp.flush();
 
     var client = readRow_(sh, map, row);
-    appendLog_(ss, { id: client.id, name: client.name, action: isNew ? 'Added' : 'Edited', note: '', prevLast: '' });
+    var action = isNew ? 'Added' : (p.logAction ? String(p.logAction).slice(0, 60) : 'Edited');
+    appendLog_(ss, { id: client.id, name: client.name, action: action, note: '', prevLast: '' });
     return { client: client, logEntry: null };
   });
 }
@@ -339,7 +348,8 @@ function importPpcLeads() {
         topic: pick(opts.topic, topic),
         stage: pick(opts.stage, iStage >= 0 ? row[iStage] : '') || 'Follow Up',
         duration: pick(opts.duration, iDur >= 0 ? row[iDur] : '') || 'Monthly',
-        remarks: note + (rem ? '\n' + rem : '')
+        remarks: note + (rem ? '\n' + rem : ''),
+        source: 'PPC'
       };
       var lastV = iLast >= 0 ? row[iLast] : '';
       fields.last = lastV instanceof Date ? lastV : sheetToday_(ss);
@@ -417,8 +427,82 @@ function rowToClient_(row, map, rowNum) {
     phone: s('phone'), address: s('address'),
     type: s('type'), rooms: s('rooms'),
     status: s('status'), topic: s('topic'), stage: s('stage'),
-    duration: s('duration'), remarks: s('remarks')
+    duration: s('duration'), remarks: s('remarks'),
+    source: s('source') || guessSource_(s('remarks')),
+    timeline: s('timeline')
   };
+}
+
+/** Rows imported from PPC start their remarks with "PPC lead"; everything else is the Master List. */
+function guessSource_(remarks) {
+  return /^PPC lead/i.test(String(remarks || '')) ? 'PPC' : 'Master List';
+}
+
+/**
+ * One-time (safe to repeat) sheet setup for the source/timeline layout:
+ *  1. Adds "Source" and "Timeline" headers in the first empty columns after
+ *     the last header, with dropdowns that still allow other values.
+ *  2. Fills Source for every named row that has none (PPC / Master List).
+ *  3. Teaches the Next Follow Up formula a "2 Months" cadence. Only cells that
+ *     already hold the Next Follow Up formula are rewritten; values are left.
+ */
+function setupColumns() {
+  return withLock_(function () {
+    var ss = SpreadsheetApp.openById(SHEET_ID);
+    var sh = clientSheet_(ss);
+    var out = { added: [], sourceFilled: 0, formulasUpdated: 0 };
+
+    var width = sh.getLastColumn();
+    var head = sh.getRange(1, 1, 1, width).getValues()[0].map(function (h) { return String(h).trim(); });
+    var lastHead = 0;
+    head.forEach(function (h, i) { if (h) lastHead = i + 1; });
+    [['Source', SOURCES], ['Timeline', TIMELINES]].forEach(function (pair) {
+      var exists = head.some(function (h) { return h.toLowerCase() === pair[0].toLowerCase(); });
+      if (exists) return;
+      lastHead += 1;
+      sh.getRange(1, lastHead).setValue(pair[0]).setFontWeight('bold');
+      var rule = SpreadsheetApp.newDataValidation().requireValueInList(pair[1], true).setAllowInvalid(true).build();
+      sh.getRange(2, lastHead, Math.max(sh.getMaxRows() - 1, 1), 1).setDataValidation(rule);
+      head[lastHead - 1] = pair[0];
+      out.added.push(pair[0] + ' in column ' + lastHead);
+    });
+    SpreadsheetApp.flush();
+
+    var map = headerMap_(sh);
+    var n = Math.max(sh.getLastRow() - 1, 0);
+    if (n && map.source != null) {
+      var names = sh.getRange(2, map.name + 1, n, 1).getValues();
+      var rems = sh.getRange(2, map.remarks + 1, n, 1).getValues();
+      var srcR = sh.getRange(2, map.source + 1, n, 1);
+      var src = srcR.getValues();
+      for (var i = 0; i < n; i++) {
+        if (String(names[i][0]).trim() && !String(src[i][0]).trim()) {
+          src[i][0] = guessSource_(rems[i][0]);
+          out.sourceFilled++;
+        }
+      }
+      srcR.setValues(src);
+    }
+
+    if (n && map.next != null && map.last != null && map.duration != null) {
+      var d = map.duration - map.next, l = map.last - map.next;
+      var L = 'R[0]C[' + d + ']', C = 'R[0]C[' + l + ']';
+      var f = '=IF(' + L + '="Daily",' + C + '+1,IF(' + L + '="Weekly",' + C + '+7,IF(' + L + '="2 Days",' + C + '+2,' +
+              'IF(' + L + '="Bi-Weekly",' + C + '+14,IF(' + L + '="Monthly",EDATE(' + C + ',1),' +
+              'IF(' + L + '="2 Months",EDATE(' + C + ',2),""))))))';
+      var rng = sh.getRange(2, map.next + 1, n, 1);
+      var cur = rng.getFormulas();
+      for (var r = 0; r < n; r++) {
+        var fa = cur[r][0];
+        if (fa && /"Monthly"/.test(fa) && !/"2 Months"/.test(fa)) {
+          sh.getRange(r + 2, map.next + 1).setFormulaR1C1(f);
+          out.formulasUpdated++;
+        }
+      }
+    }
+    SpreadsheetApp.flush();
+    return out;
+  });
 }
 
 function readRow_(sh, map, row) {
